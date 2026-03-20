@@ -24,6 +24,7 @@
           clang
           cmake
           mold
+          gdb
         ];
 
         hardeningDisable = ["fortify"];

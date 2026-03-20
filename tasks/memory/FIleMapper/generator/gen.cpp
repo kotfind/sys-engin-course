@@ -11,6 +11,8 @@ void print_random_numbers(std::size_t num_count) {
     for (std::size_t i = 0; i < num_count; ++i) {
         auto num = dist(rnd);
 
+        std::cerr << "gen: " << num << "\n";
+
         std::cout.write((const char*)&num, sizeof(uint64_t));
     }
 }

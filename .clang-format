@@ -3,3 +3,6 @@ AlwaysBreakTemplateDeclarations: true
 IndentWidth: 4
 PointerAlignment: Left
 SortIncludes: true
+AlignAfterOpenBracket: BlockIndent
+BinPackArguments: false
+BinPackParameters: false

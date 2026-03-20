@@ -17,6 +17,10 @@ class UInt64File {
 
     std::size_t get_items_cont() const;
 
+    // Returns a random element from some of the loaded regions.
+    // If no regions are loaded yet, loads some.
+    std::uint64_t get_random_loaded_item();
+
   private:
     using last_used_counter_t = std::size_t;
 

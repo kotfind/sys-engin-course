@@ -6,8 +6,11 @@
 #include <cstring>
 #include <format>
 #include <iostream>
+#include <random>
 #include <sys/mman.h>
 #include <unistd.h>
+
+static std::mt19937_64 rnd{std::random_device{}()};
 
 UInt64FileRegion::UInt64FileRegion(
     int fd, std::size_t start_idx, std::size_t end_idx
@@ -116,4 +119,14 @@ std::size_t UInt64FileRegion::get_start_idx_alignment() {
     }
 
     return page_size / sizeof(std::uint64_t);
+}
+
+std::uint64_t UInt64FileRegion::get_random_item() const {
+    std::uniform_int_distribution<std::size_t> dist{
+        this->start_idx, this->end_idx - 1
+    };
+
+    auto idx = dist(rnd);
+
+    return (*this)[idx];
 }

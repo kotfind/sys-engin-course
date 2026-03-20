@@ -9,7 +9,10 @@
 #include <format>
 #include <iostream>
 #include <numeric>
+#include <random>
 #include <unistd.h>
+
+static std::mt19937_64 rnd{std::random_device{}()};
 
 UInt64File::UInt64File(
     const std::filesystem::path& file_path, std::size_t mmap_size_limit
@@ -133,4 +136,21 @@ std::uint64_t& UInt64File::operator[](std::size_t abs_idx) {
 
     this->regions[oldest_region_idx] = std::move(new_region);
     return this->regions[oldest_region_idx].first[abs_idx];
+}
+
+std::uint64_t UInt64File::get_random_loaded_item() {
+    if (this->regions.empty()) {
+        std::uniform_int_distribution<std::size_t> dist{
+            0, this->items_count - 1
+        };
+        auto idx = dist(rnd);
+        return (*this)[idx];
+    }
+
+    std::uniform_int_distribution<std::size_t> region_dist{
+        0, this->regions.size() - 1
+    };
+    auto region_idx = region_dist(rnd);
+
+    return this->regions[region_idx].first.get_random_item();
 }

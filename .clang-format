@@ -1,9 +1,5 @@
-BasedOnStyle: Google
----
-Language: Cpp
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLambdasOnASingleLine: Empty
-DerivePointerAlignment: false
+AllowShortFunctionsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: true
+IndentWidth: 4
 PointerAlignment: Left
-SortIncludes: false
+SortIncludes: true

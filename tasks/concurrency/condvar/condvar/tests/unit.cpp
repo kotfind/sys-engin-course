@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <ctime>
 #include <mutex>
 #include <thread>
 
@@ -73,10 +74,11 @@ TEST_CASE("notify one", "[condvar,unit]") {
 
         std::thread waiter([&]() {
             {
-                // FIXME
-                // std::test::util::ThreadCPUTimer cpu_timer;
+                auto start = clock();
                 pass.Await();
-                // REQUIRE(cpu_timer.Elapsed() < 200ms);
+                auto end = clock();
+                auto dur_ms = (end - start) * 1000 / CLOCKS_PER_SEC;
+                REQUIRE(dur_ms < 200);
             }
             passed = true;
         });

@@ -6,7 +6,7 @@
 
 struct Args {
     std::filesystem::path file_path;
-    std::size_t memory_limit;
+    std::size_t mmap_size_limit;
 };
 
 Args parse_args(int argc, char** argv);

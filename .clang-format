@@ -1,8 +1,13 @@
 AllowShortFunctionsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: true
+
 IndentWidth: 4
 PointerAlignment: Left
 SortIncludes: true
+
 AlignAfterOpenBracket: BlockIndent
 BinPackArguments: false
 BinPackParameters: false
+
+AlwaysBreakAfterReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000

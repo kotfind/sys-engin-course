@@ -25,6 +25,8 @@
           cmake
           mold
         ];
+
+        hardeningDisable = ["fortify"];
       };
     in {
       devShells.default = shell;

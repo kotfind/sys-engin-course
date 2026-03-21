@@ -15,8 +15,10 @@ int main(int argc, char** argv) {
     if (check_numbers()) {
         std::cerr << ANSI_BOLD_GREEN << "Numbers are sorted" << ANSI_CLEAR
                   << std::endl;
+        return 0;
     } else {
         std::cerr << ANSI_BOLD_RED << "Numbers are NOT sorted" << ANSI_CLEAR
                   << std::endl;
+        return 1;
     }
 }

@@ -6,9 +6,11 @@
 #include <iostream>
 #include <string>
 
-void show_usage(const std::string argv0) {
-    std::cerr << ANSI_BOLD_RED << "Failed to parse command line arguments\n"
-              << ANSI_CLEAR << std::endl;
+void show_usage(const std::string argv0, bool is_error) {
+    if (is_error) {
+        std::cerr << ANSI_BOLD_RED << "Failed to parse command line arguments\n"
+                  << ANSI_CLEAR << std::endl;
+    }
 
     // clang-format off
     std::cerr << std::format(
@@ -24,5 +26,5 @@ void show_usage(const std::string argv0) {
         << std::endl;
     // clang-format on
 
-    exit(1);
+    exit(is_error);
 }

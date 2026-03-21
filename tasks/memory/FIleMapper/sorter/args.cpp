@@ -12,8 +12,13 @@
 namespace fs = std::filesystem;
 
 Args parse_args(int argc, char** argv) {
+    if (argc >= 2 &&
+        (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
+        show_usage(std::string(argv[0]), false);
+    }
+
     if (argc != 2 && argc != 3) {
-        show_usage(std::string(argv[0]));
+        show_usage(std::string(argv[0]), true);
     }
 
     // ---------- File Path ----------
@@ -45,8 +50,10 @@ Args parse_args(int argc, char** argv) {
     return {.file_path = file_path, .mmap_size_limit = mmap_size_limit};
 }
 
-void show_usage(const std::string argv0) {
-    error("Failed to parse command line arguments\n");
+void show_usage(const std::string argv0, bool is_error) {
+    if (is_error) {
+        error("Failed to parse command line arguments\n");
+    }
 
     // clang-format off
     std::cerr << std::format(
@@ -66,5 +73,5 @@ void show_usage(const std::string argv0) {
         argv0)
         << std::endl;
 
-    exit(1);
+    exit(is_error);
 }

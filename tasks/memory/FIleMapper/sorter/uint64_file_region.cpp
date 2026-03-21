@@ -1,6 +1,7 @@
 #include "uint64_file_region.hpp"
 
 #include "ansi.hpp"
+#include "log.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -26,9 +27,7 @@ UInt64FileRegion::UInt64FileRegion(
     );
 
     if (this->items == MAP_FAILED) {
-        std::cerr << ANSI_BOLD_RED << "mmap failed: " << strerror(errno)
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("mmap failed: {}", strerror(errno));
     }
 }
 
@@ -59,9 +58,7 @@ void UInt64FileRegion::unmap() {
     auto bytes_size = end_offset - start_offset;
 
     if (munmap(this->items, bytes_size) == -1) {
-        std::cerr << ANSI_BOLD_RED << "munmap failed: " << strerror(errno)
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("munmap failed: {}", strerror(errno));
     }
 }
 
@@ -94,27 +91,17 @@ void UInt64FileRegion::assert_in_range(std::size_t abs_idx) const {
         return;
     }
 
-    std::cerr << ANSI_BOLD_RED
-              << std::format(
-                     "index {} is not in range [{}, {})",
-                     abs_idx,
-                     this->start_idx,
-                     this->end_idx
-                 )
-              << ANSI_CLEAR << std::endl;
-    exit(1);
+    die("index {} is not in range [{}, {})",
+        abs_idx,
+        this->start_idx,
+        this->end_idx);
 }
 
 std::size_t UInt64FileRegion::get_start_idx_alignment() {
     auto page_size = sysconf(_SC_PAGESIZE);
 
     if (page_size == -1) {
-        std::cerr << ANSI_BOLD_RED
-                  << std::format(
-                         "failed to get a page size {}", strerror(errno)
-                     )
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("failed to get a page size {}", strerror(errno));
     }
 
     return page_size / sizeof(std::uint64_t);

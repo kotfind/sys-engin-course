@@ -1,6 +1,7 @@
 #include "args.hpp"
 
 #include "ansi.hpp"
+#include "log.hpp"
 
 #include <charconv>
 #include <cstring>
@@ -21,11 +22,7 @@ Args parse_args(int argc, char** argv) {
     file_path = fs::absolute(file_path);
 
     if (!fs::exists(file_path)) {
-        std::cerr << ANSI_BOLD_RED
-                  << std::format("file `{}` does not exists",
-                                 file_path.string())
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("file `{}` does not exists", file_path.string());
     }
 
     // ---------- Memory Limit ----------
@@ -36,10 +33,7 @@ Args parse_args(int argc, char** argv) {
             std::from_chars(argv[2], argv[2] + strlen(argv[2]), memory_limit);
 
         if (from_chars_result.ec != std::errc()) {
-            std::cerr << ANSI_BOLD_RED
-                      << "failed to parse <MEMORY_LIMIT> as a number"
-                      << ANSI_CLEAR << std::endl;
-            exit(1);
+            die("failed to parse <MEMORY_LIMIT> as a number");
         }
 
         memory_limit *= 1024 * 1024; // MB -> B
@@ -51,8 +45,7 @@ Args parse_args(int argc, char** argv) {
 }
 
 void show_usage(const std::string argv0) {
-    std::cerr << ANSI_BOLD_RED << "Failed to parse command line arguments\n"
-              << ANSI_CLEAR << std::endl;
+    error("Failed to parse command line arguments\n");
 
     // clang-format off
     std::cerr << std::format(

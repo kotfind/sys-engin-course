@@ -1,6 +1,7 @@
 #include "uint64_file.hpp"
 
 #include "ansi.hpp"
+#include "log.hpp"
 
 #include <cassert>
 #include <cerrno>
@@ -20,17 +21,9 @@ UInt64File::UInt64File(
     this->fd = open(file_path.c_str(), O_RDWR);
 
     if (this->fd == -1) {
-        std::cerr << ANSI_BOLD_RED
-                  << std::format(
-                         "failed to open `{}`: {}",
-                         file_path.c_str(),
-                         strerror(errno)
-                     )
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("failed to open `{}`: {}", file_path.c_str(), strerror(errno));
     }
 
-    ;
     auto min_mmap_size_limit =
         sizeof(std::uint64_t) *
         std::max(
@@ -38,17 +31,12 @@ UInt64File::UInt64File(
         );
 
     if (mmap_size_limit < min_mmap_size_limit) {
-        std::cerr << ANSI_BOLD_RED
-                  << std::format(
-                         "mmap size limits less than {} bytes are not "
-                         "supported, please specify a higher value (got a "
-                         "value of {} bytes)",
-                         min_mmap_size_limit,
-                         mmap_size_limit,
-                         strerror(errno)
-                     )
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("mmap size limits less than {} bytes are not "
+            "supported, please specify a higher value (got a "
+            "value of {} bytes)",
+            min_mmap_size_limit,
+            mmap_size_limit,
+            strerror(errno));
     }
 
     this->max_region_size =
@@ -67,12 +55,7 @@ UInt64File::UInt64File(
 UInt64File::~UInt64File() {
     if (this->fd) {
         if (close(this->fd) == -1) {
-            std::cerr << ANSI_BOLD_RED
-                      << std::format(
-                             "failed to close file: {}", strerror(errno)
-                         )
-                      << ANSI_CLEAR << std::endl;
-            exit(1);
+            die("failed to close file: {}", strerror(errno));
         }
     }
 }
@@ -85,14 +68,7 @@ std::uint64_t& UInt64File::operator[](std::size_t abs_idx) {
     // ---------- Checks ----------
 
     if (abs_idx >= this->items_count) {
-        std::cerr << ANSI_BOLD_RED
-                  << std::format(
-                         "index {} is not in range: [0, {})",
-                         abs_idx,
-                         this->items_count
-                     )
-                  << ANSI_CLEAR << std::endl;
-        exit(1);
+        die("index {} is not in range: [0, {})", abs_idx, this->items_count);
     }
 
     // ---------- Try find in cache ----------

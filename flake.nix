@@ -24,6 +24,8 @@
           clang
           cmake
           mold
+
+          gnuplot
         ];
 
         hardeningDisable = ["all"];

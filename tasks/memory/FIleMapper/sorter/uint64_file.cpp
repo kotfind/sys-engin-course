@@ -24,27 +24,7 @@ UInt64File::UInt64File(
         die("failed to open `{}`: {}", file_path.c_str(), strerror(errno));
     }
 
-    auto min_mmap_size_limit =
-        sizeof(std::uint64_t) *
-        std::max(
-            this->max_regions, UInt64FileRegion::get_start_idx_alignment()
-        );
-
-    if (mmap_size_limit < min_mmap_size_limit) {
-        die("mmap size limits less than {} bytes are not "
-            "supported, please specify a higher value (got a "
-            "value of {} bytes)",
-            min_mmap_size_limit,
-            mmap_size_limit,
-            strerror(errno));
-    }
-
-    this->max_region_size =
-        mmap_size_limit / sizeof(std::uint64_t) / this->max_regions;
-    this->max_region_size =
-        this->max_region_size -
-        (this->max_region_size % UInt64FileRegion::get_start_idx_alignment());
-    assert(this->max_region_size != 0);
+    this->max_region_size = count_max_region_size(mmap_size_limit);
 
     this->regions.reserve(this->max_regions);
 
@@ -126,4 +106,34 @@ void UInt64File::swap(std::size_t a_idx, std::size_t b_idx) {
     auto tmp = (*this)[a_idx];
     (*this)[a_idx] = (*this)[b_idx];
     (*this)[b_idx] = tmp;
+}
+
+std::size_t UInt64File::get_min_mmap_size_limit() {
+    return sizeof(std::uint64_t) * max_regions *
+           std::max(max_regions, UInt64FileRegion::get_start_idx_alignment());
+}
+
+std::size_t UInt64File::count_max_region_size(std::size_t mmap_size_limit) {
+    if (mmap_size_limit < get_min_mmap_size_limit()) {
+        die("mmap size limits less than {} bytes are not "
+            "supported, please specify a higher value (got a "
+            "value of {} bytes)",
+            get_min_mmap_size_limit(),
+            mmap_size_limit,
+            strerror(errno));
+    }
+
+    // fit in a limit
+    auto max_region_size =
+        mmap_size_limit / sizeof(std::uint64_t) / max_regions;
+
+    // align
+    max_region_size =
+        max_region_size -
+        (max_region_size % UInt64FileRegion::get_start_idx_alignment());
+
+    // should be guarantied by get_min_mmap_size_limit
+    assert(max_region_size != 0);
+
+    return max_region_size;
 }

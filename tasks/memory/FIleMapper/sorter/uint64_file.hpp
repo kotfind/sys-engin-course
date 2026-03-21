@@ -21,10 +21,18 @@ class UInt64File {
 
     void swap(std::size_t a_idx, std::size_t b_idx);
 
+    // NOTE: The constraint comes from `count_max_region_size` method.
+    // Check it's code for the details.
+    static std::size_t get_min_mmap_size_limit();
+
   private:
     using last_used_counter_t = std::size_t;
 
-    const std::size_t max_regions = 4;
+    static constexpr std::size_t max_regions = 4;
+
+    // This is NOT a getter for `max_region_size`, but a method,
+    // used to initialize it.
+    static std::size_t count_max_region_size(std::size_t mmap_size_limit);
 
     int fd;
 

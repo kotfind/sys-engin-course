@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <chrono>
 #include <cstring>
+#include <ctime>
 #include <unistd.h>
 
 std::size_t get_page_size() {
@@ -17,9 +18,9 @@ std::size_t get_page_size() {
 }
 
 double with_nanos_duration(const std::function<void()>& func) {
-    auto start = std::chrono::steady_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
     func();
-    auto end = std::chrono::steady_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
 
     return std::chrono::duration<double, std::nano>(end - start).count();
 }

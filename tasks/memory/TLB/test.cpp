@@ -3,18 +3,23 @@
 #include "log.hpp"
 #include "util.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <pthread.h>
+#include <random>
 #include <sched.h>
 #include <vector>
 
-volatile char black_box;
+std::mt19937 rnd{std::random_device{}()};
 
-void write_on_n_pages(std::vector<char>& data, std::size_t page_size) {
-    for (std::size_t i = 0; i < data.size(); i += page_size) {
-        black_box = data[i];
+void write_on_n_pages(void* ptr, const std::vector<std::size_t>& addrs) {
+    volatile char* data = (volatile char*)ptr;
+    volatile char sum = 0;
+
+    for (const std::size_t addr : addrs) {
+        sum += data[addr];
     }
 }
 
@@ -22,23 +27,38 @@ void write_on_n_pages(std::vector<char>& data, std::size_t page_size) {
 double test_with_n_pages(
     std::size_t page_size, std::size_t page_count, std::size_t run_count
 ) {
-    std::vector<char> data(page_size * page_count, 0);
+    void* data = std::aligned_alloc(page_size, page_size * page_count);
 
-    // do some runs to put pages to TLB
-    for (std::size_t run_idx = 0; run_idx < 5; ++run_idx) {
-        write_on_n_pages(data, page_size);
+    {
+        volatile char* vdata = (volatile char*)data;
+        for (size_t i = 0; i < page_size * page_count; i += page_size) {
+            vdata[i] = 0xFF;
+        }
     }
 
-    auto start = std::chrono::steady_clock::now();
-    for (std::size_t run_idx = 0; run_idx < run_count; ++run_idx) {
-        write_on_n_pages(data, page_size);
+    std::vector<std::size_t> addrs(page_count);
+    std::uniform_int_distribution<std::size_t> dist{0, page_size - 1};
+
+    for (std::size_t page_idx = 0; page_idx < page_count; ++page_idx) {
+        auto addr = page_idx * page_size + dist(rnd);
+        addrs[page_idx] = addr;
     }
-    auto end = std::chrono::steady_clock::now();
 
-    auto sum_dur =
-        std::chrono::duration<double, std::nano>(end - start).count();
+    std::shuffle(std::begin(addrs), std::end(addrs), rnd);
 
-    return sum_dur / page_count / run_count;
+    for (std::size_t warmup = 0; warmup < 10; ++warmup) {
+        write_on_n_pages(data, addrs);
+    }
+
+    auto sum_dur = with_nanos_duration([&] {
+        for (std::size_t run_idx = 0; run_idx < run_count; ++run_idx) {
+            write_on_n_pages(data, addrs);
+        }
+    });
+
+    std::free(data);
+
+    return sum_dur / (page_count * run_count);
 }
 
 void pin_to_core(int core_id) {
@@ -61,8 +81,8 @@ void run_tests() {
 
     pin_to_core(2);
 
-    for (std::size_t i = 1; i < 1000 + 2; i += 1) {
-        auto nanos = test_with_n_pages(page_size, i, 1000);
+    for (std::size_t i = 1; i < 200 + 1; i += 5) {
+        auto nanos = test_with_n_pages(page_size, i, 10000000);
         info("{} -> {:.3f}ns", i, nanos);
         write_point(i, nanos);
     }

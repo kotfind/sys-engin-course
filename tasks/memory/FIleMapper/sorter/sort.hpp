@@ -1,5 +1,7 @@
 #pragma once
 
-#include "uint64_file.hpp"
+#include <filesystem>
 
-void uint64_file_sort(UInt64File& file);
+void uint64_file_sort(
+    const std::filesystem::path& file_path, std::size_t mmap_size_limit
+);

@@ -40,6 +40,11 @@ void die(std::format_string<Args...>&& fmt, Args&&... args) {
 }
 
 template <typename... Args>
+void warn(std::format_string<Args...>&& fmt, Args&&... args) {
+    __log("WRN", ANSI_BOLD_YELLOW, std::move(fmt), std::forward<Args>(args)...);
+}
+
+template <typename... Args>
 void info(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("INF", ANSI_BOLD, std::move(fmt), std::forward<Args>(args)...);
 }

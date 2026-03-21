@@ -1,5 +1,6 @@
 #include "ansi.hpp"
 #include "args.hpp"
+#include "sort.hpp"
 #include "uint64_file.hpp"
 
 #include <fcntl.h>
@@ -23,8 +24,7 @@ int main(int argc, char** argv) {
 
     auto file = UInt64File(args.file_path, args.memory_limit);
 
-    for (std::size_t item_idx = 0; item_idx < file.get_items_cont();
-         ++item_idx) {
-        std::cout << file[item_idx] << "\n";
-    }
+    uint64_file_sort(file);
+
+    std::cerr << ANSI_BOLD_GREEN << "Done!" << ANSI_CLEAR << std::endl;
 }

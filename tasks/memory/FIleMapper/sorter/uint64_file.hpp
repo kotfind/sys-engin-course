@@ -15,11 +15,11 @@ class UInt64File {
 
     std::uint64_t& operator[](std::size_t abs_idx);
 
-    std::size_t get_items_cont() const;
+    std::size_t get_items_count() const;
 
-    // Returns a random element from some of the loaded regions.
-    // If no regions are loaded yet, loads some.
-    std::uint64_t get_random_loaded_item();
+    std::uint64_t get_random_item(std::size_t start_idx, std::size_t end_idx);
+
+    void swap(std::size_t a_idx, std::size_t b_idx);
 
   private:
     using last_used_counter_t = std::size_t;

@@ -77,7 +77,7 @@ UInt64File::~UInt64File() {
     }
 }
 
-std::size_t UInt64File::get_items_cont() const {
+std::size_t UInt64File::get_items_count() const {
     return this->items_count;
 }
 
@@ -87,10 +87,9 @@ std::uint64_t& UInt64File::operator[](std::size_t abs_idx) {
     if (abs_idx >= this->items_count) {
         std::cerr << ANSI_BOLD_RED
                   << std::format(
-                         "index {} is not in range: [0, {}): {}",
+                         "index {} is not in range: [0, {})",
                          abs_idx,
-                         this->items_count,
-                         strerror(errno)
+                         this->items_count
                      )
                   << ANSI_CLEAR << std::endl;
         exit(1);
@@ -104,7 +103,7 @@ std::uint64_t& UInt64File::operator[](std::size_t abs_idx) {
 
     for (auto& [region, last_used] : this->regions) {
         if (region.get_start_idx() == start_idx) {
-            last_used += this->last_used_counter;
+            last_used = this->last_used_counter;
             return region[abs_idx];
         }
     }
@@ -138,19 +137,17 @@ std::uint64_t& UInt64File::operator[](std::size_t abs_idx) {
     return this->regions[oldest_region_idx].first[abs_idx];
 }
 
-std::uint64_t UInt64File::get_random_loaded_item() {
-    if (this->regions.empty()) {
-        std::uniform_int_distribution<std::size_t> dist{
-            0, this->items_count - 1
-        };
-        auto idx = dist(rnd);
-        return (*this)[idx];
-    }
+std::uint64_t UInt64File::get_random_item(
+    std::size_t start_idx, std::size_t end_idx
+) {
+    // TODO?: improve caching somehow?
+    std::uniform_int_distribution<std::size_t> dist{start_idx, end_idx - 1};
+    auto idx = dist(rnd);
+    return (*this)[idx];
+}
 
-    std::uniform_int_distribution<std::size_t> region_dist{
-        0, this->regions.size() - 1
-    };
-    auto region_idx = region_dist(rnd);
-
-    return this->regions[region_idx].first.get_random_item();
+void UInt64File::swap(std::size_t a_idx, std::size_t b_idx) {
+    auto tmp = (*this)[a_idx];
+    (*this)[a_idx] = (*this)[b_idx];
+    (*this)[b_idx] = tmp;
 }

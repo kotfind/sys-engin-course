@@ -9,8 +9,4 @@ include(cmake/Ccache.cmake)
 include(cmake/Flags.cmake)
 include(cmake/Mold.cmake)
 
-set(UBSAN true)
-set(ASAN true)
-include(cmake/Sanitize.cmake)
-
 add_subdirectory(tasks)

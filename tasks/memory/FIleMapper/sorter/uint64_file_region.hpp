@@ -32,8 +32,6 @@ class UInt64FileRegion {
 
     static std::size_t get_start_idx_alignment();
 
-    std::uint64_t get_random_item() const;
-
   private:
     void assert_in_range(std::size_t abs_idx) const;
 

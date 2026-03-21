@@ -96,11 +96,10 @@ void UInt64FileRegion::assert_in_range(std::size_t abs_idx) const {
 
     std::cerr << ANSI_BOLD_RED
               << std::format(
-                     "index {} is not in range [{}, {}): {}",
+                     "index {} is not in range [{}, {})",
                      abs_idx,
                      this->start_idx,
-                     this->end_idx,
-                     strerror(errno)
+                     this->end_idx
                  )
               << ANSI_CLEAR << std::endl;
     exit(1);
@@ -119,14 +118,4 @@ std::size_t UInt64FileRegion::get_start_idx_alignment() {
     }
 
     return page_size / sizeof(std::uint64_t);
-}
-
-std::uint64_t UInt64FileRegion::get_random_item() const {
-    std::uniform_int_distribution<std::size_t> dist{
-        this->start_idx, this->end_idx - 1
-    };
-
-    auto idx = dist(rnd);
-
-    return (*this)[idx];
 }

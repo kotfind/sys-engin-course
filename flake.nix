@@ -26,7 +26,7 @@
           mold
         ];
 
-        hardeningDisable = ["fortify"];
+        hardeningDisable = ["all"];
       };
     in {
       devShells.default = shell;

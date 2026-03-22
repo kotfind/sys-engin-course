@@ -1,9 +1,16 @@
 #include "fuse_dir.hpp"
+#include "fuse_file.hpp"
+#include "helpers.hpp"
 #include "log.hpp"
 
 #include <cassert>
 #include <string_view>
 #include <utility>
+#include <variant>
+
+static std::string_view prepare_path(std::string_view path) {
+    return path.starts_with("/") ? path.substr(1) : path;
+}
 
 std::pair<std::string_view, std::string_view> split_path_head(
     std::string_view path
@@ -18,67 +25,82 @@ std::pair<std::string_view, std::string_view> split_path_head(
     return {head, tail};
 }
 
-FuseDir* FuseDir::get_dir(std::string_view path) const {
+FuseDirEntryRef FuseDir::get_entry(std::string_view path) {
+    path = prepare_path(path);
+
+    if (path.empty()) {
+        return {this};
+    }
+
     if (path.find("/") == std::string_view::npos) {
-        return this->get_dir_here(path);
+        return this->get_entry_here(path);
     }
 
     auto [head, tail] = split_path_head(path);
 
-    auto next_dir = get_dir_here(head);
+    auto next_entry = this->get_entry_here(head);
+    auto* next_dir = std::visit(
+        overloads{
+            [](FuseDir* dir) { return dir; },
+            [head](FuseFile*) {
+                error("cannot enter `{}` it's not a directory", head);
+                return (FuseDir*)nullptr;
+            },
+            [head](none) {
+                error("cannot enter `{}`: it doesn't exist", head);
+                return (FuseDir*)nullptr;
+            },
+        },
+        next_entry
+    );
     if (next_dir == nullptr) {
-        return nullptr;
+        return {};
     }
 
-    return next_dir->get_dir(tail);
+    return next_dir->get_entry(tail);
 }
 
-FuseFile* FuseDir::get_file(std::string_view path) const {
+// TODO: remove code repetition: this method is hardly different from
+// `get_entry`
+bool FuseDir::add_entry(std::string_view path, FuseDirEntryOwned entry) {
+    path = prepare_path(path);
+
+    assert(!path.empty());
+
     if (path.find("/") == std::string_view::npos) {
-        return this->get_file_here(path);
+        return this->add_entry_here(path, std::move(entry));
     }
 
     auto [head, tail] = split_path_head(path);
 
-    auto next_dir = get_dir_here(head);
-    if (next_dir == nullptr) {
-        return nullptr;
-    }
-
-    return next_dir->get_file(tail);
-}
-
-bool FuseDir::add_dir(std::string_view path, std::unique_ptr<FuseDir> dir) {
-    if (path.find("/") == std::string_view::npos) {
-        return this->get_dir_here(path);
-    }
-
-    auto [head, tail] = split_path_head(path);
-
-    auto next_dir = get_dir_here(head);
+    auto next_entry = this->get_entry_here(head);
+    auto* next_dir = std::visit(
+        overloads{
+            [](FuseDir* dir) { return dir; },
+            [head](FuseFile*) {
+                error("cannot enter `{}` it's not a directory", head);
+                return (FuseDir*)nullptr;
+            },
+            [head](none) {
+                error("cannot enter `{}`: it doesn't exist", head);
+                return (FuseDir*)nullptr;
+            },
+        },
+        next_entry
+    );
     if (next_dir == nullptr) {
         return false;
     }
 
-    return next_dir->add_dir(tail, std::move(dir));
+    return next_dir->add_entry(tail, std::move(entry));
 }
 
-bool FuseDir::add_file(std::string_view path, std::unique_ptr<FuseFile> file) {
-    if (path.find("/") == std::string_view::npos) {
-        return this->get_dir_here(path);
-    }
-
-    auto [head, tail] = split_path_head(path);
-
-    auto next_dir = get_dir_here(head);
-    if (next_dir == nullptr) {
-        return false;
-    }
-
-    return next_dir->add_file(tail, std::move(file));
+const std::unordered_map<std::string, FuseDirEntryOwned>& FuseDir::
+    view_entries() const {
+    return this->entries;
 }
 
-FuseDir* FuseDir::get_dir_here(std::string_view name_view) const {
+FuseDirEntryRef FuseDir::get_entry_here(std::string_view name_view) {
     // NOTE: I know this allocates and thus is pretty slow.
     // But std::unordered_map<std::string, T> does not support
     // std::string_view lookup and I don't quite want to
@@ -87,57 +109,27 @@ FuseDir* FuseDir::get_dir_here(std::string_view name_view) const {
 
     assert(name.find("/") == std::string_view::npos);
 
-    auto it = this->dirs.find(name);
-    if (it != this->dirs.end()) {
-        return it->second.get();
+    auto it = this->entries.find(name);
+    if (it != this->entries.end()) {
+        return it->second.to_ref();
     } else {
-        error("Dir `{}` does not exist", name);
-        return nullptr;
+        error("Path `{}` does not exist", name);
+        return {};
     }
 }
 
-FuseFile* FuseDir::get_file_here(std::string_view name_view) const {
-    const std::string name{name_view};
-
-    assert(name.find("/") == std::string_view::npos);
-
-    auto it = this->files.find(name);
-    if (it != this->files.end()) {
-        return it->second.get();
-    } else {
-        error("File `{}` does not exist", name);
-        return nullptr;
-    }
-}
-
-bool FuseDir::add_dir_here(
-    std::string_view name_view, std::unique_ptr<FuseDir> dir
+bool FuseDir::add_entry_here(
+    std::string_view name_view, FuseDirEntryOwned entry
 ) {
     const std::string name{name_view};
 
     assert(name.find("/") == std::string_view::npos);
 
-    if (this->dirs.contains(name) || this->files.contains(name)) {
-        error("failed to create  `{}`: path already exists", name);
-        return false;
-    }
-
-    this->dirs[name] = std::move(dir);
-    return true;
-}
-
-bool FuseDir::add_file_here(
-    std::string_view name_view, std::unique_ptr<FuseFile> file
-) {
-    const std::string name{name_view};
-
-    assert(name.find("/") == std::string_view::npos);
-
-    if (this->dirs.contains(name) || this->files.contains(name)) {
+    if (this->entries.contains(name)) {
         error("failed to create `{}`: path already exists", name);
         return false;
     }
 
-    this->files[name] = std::move(file);
+    this->entries.emplace(name, std::move(entry));
     return true;
 }

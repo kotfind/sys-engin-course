@@ -15,15 +15,13 @@ class FuseFs {
     ~FuseFs();
 
     static FuseFs* mount(
-        std::string_view mountpath, std::unique_ptr<FuseDir> root_dir
+        std::string_view mountpath, std::unique_ptr<FuseDir> root
     );
 
   private:
-    FuseFs(std::unique_ptr<FuseDir> root_dir);
+    FuseFs(std::unique_ptr<FuseDir> root);
 
     static struct fuse_operations fuse_operations;
-
-    static std::string_view prepare_path(std::string_view path);
 
     // NOTE: !!! Can be called from within fuse operation handlers only
     static std::pair<FuseFs*, std::unique_lock<std::mutex>> get_fs_locked();
@@ -53,5 +51,5 @@ class FuseFs {
 
     struct fuse* fuse;
 
-    std::unique_ptr<FuseDir> root_dir;
+    std::unique_ptr<FuseDir> root;
 };

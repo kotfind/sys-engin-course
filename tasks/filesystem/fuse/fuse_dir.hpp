@@ -11,7 +11,7 @@
 
 class FuseDir;
 
-struct FuseDirEntryRef : public std::variant<FuseDir*, FuseFile*> {};
+struct FuseDirEntryRef : public std::variant<none, FuseDir*, FuseFile*> {};
 
 struct FuseDirEntryOwned
     : public std::variant<std::unique_ptr<FuseDir>, std::unique_ptr<FuseFile>> {
@@ -32,24 +32,17 @@ struct FuseDirEntryOwned
 
 class FuseDir {
   public:
-    FuseDir* get_dir(std::string_view path) const;
+    FuseDirEntryRef get_entry(std::string_view path);
 
-    FuseFile* get_file(std::string_view path) const;
+    bool add_entry(std::string_view path, FuseDirEntryOwned entry);
 
-    bool add_dir(std::string_view path, std::unique_ptr<FuseDir> dir);
-
-    bool add_file(std::string_view path, std::unique_ptr<FuseFile> file);
+    const std::unordered_map<std::string, FuseDirEntryOwned>&
+    view_entries() const;
 
   private:
-    std::unordered_map<std::string, std::unique_ptr<FuseDir>> dirs;
+    std::unordered_map<std::string, FuseDirEntryOwned> entries;
 
-    std::unordered_map<std::string, std::unique_ptr<FuseFile>> files;
+    FuseDirEntryRef get_entry_here(std::string_view name);
 
-    FuseDir* get_dir_here(std::string_view name) const;
-
-    FuseFile* get_file_here(std::string_view name) const;
-
-    bool add_dir_here(std::string_view name, std::unique_ptr<FuseDir> dir);
-
-    bool add_file_here(std::string_view name, std::unique_ptr<FuseFile> file);
+    bool add_entry_here(std::string_view name, FuseDirEntryOwned entry);
 };

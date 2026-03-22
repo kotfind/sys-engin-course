@@ -1,7 +1,12 @@
 #include "fuse_fs.hpp"
+#include "fuse_dir.hpp"
+#include "fuse_file.hpp"
+#include "helpers.hpp"
 #include "log.hpp"
 
 #include <cassert>
+#include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <memory>
 #include <mutex>
@@ -9,6 +14,7 @@
 #include <sys/types.h>
 #include <thread>
 #include <utility>
+#include <variant>
 
 #define FUSE_USE_VERSION 32
 #include <fuse.h>
@@ -21,13 +27,8 @@ struct fuse_operations FuseFs::fuse_operations = {
     .readdir = FuseFs::fuse_readdir,
 };
 
-static std::string_view prepare_path(std::string_view path) {
-    assert(path.starts_with("/"));
-    return path.substr(1);
-}
-
-FuseFs::FuseFs(std::unique_ptr<FuseDir> root_dir)
-    : fuse(nullptr), root_dir(std::move(root_dir)) {
+FuseFs::FuseFs(std::unique_ptr<FuseDir> root)
+    : fuse(nullptr), root(std::move(root)) {
 }
 
 FuseFs::~FuseFs() {
@@ -38,9 +39,9 @@ FuseFs::~FuseFs() {
 }
 
 FuseFs* FuseFs::mount(
-    std::string_view mountpath, std::unique_ptr<FuseDir> root_dir
+    std::string_view mountpath, std::unique_ptr<FuseDir> root
 ) {
-    auto fs = std::unique_ptr<FuseFs>(new FuseFs(std::move(root_dir)));
+    auto fs = std::unique_ptr<FuseFs>(new FuseFs(std::move(root)));
 
     fuse_args args;
     {
@@ -49,6 +50,8 @@ FuseFs* FuseFs::mount(
         args = FUSE_ARGS_INIT(1, dummy_argv);
     }
 
+    // WARN: the following line causes a memory leak.
+    // idk why: FuseFs' destructor is properly called
     fs->fuse =
         fuse_new(&args, &fuse_operations, sizeof(fuse_operations), fs.get());
     if (fs->fuse == nullptr) {
@@ -82,10 +85,30 @@ std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
 int FuseFs::fuse_getattr(
     const char* path, struct stat* stat, fuse_file_info* info
 ) {
-    auto* fs = (FuseFs*)fuse_get_context()->private_data;
+    (void)info;
 
-    std::lock_guard lock(fs->mutex);
-    return fs->get_attr(path, stat, info);
+    auto [fs, lock] = get_fs_locked();
+
+    auto entry = fs->root->get_entry(path);
+    return std::visit(
+        overloads{
+            [stat](FuseFile* file) {
+                stat->st_mode = S_IFREG | 0444;
+                stat->st_nlink = 1;
+                stat->st_size = file->get_data().size();
+
+                return 0;
+            },
+            [stat](FuseDir*) {
+                stat->st_mode = S_IFDIR | 0755;
+                stat->st_nlink = 2;
+
+                return 0;
+            },
+            [](none) { return -ENOENT; },
+        },
+        entry
+    );
 }
 
 int FuseFs::fuse_readdir(
@@ -96,89 +119,73 @@ int FuseFs::fuse_readdir(
     fuse_file_info* info,
     fuse_readdir_flags flags
 ) {
-    auto* fs = (FuseFs*)fuse_get_context()->private_data;
-
-    std::lock_guard lock(fs->mutex);
-    return fs->read_dir(path, buf, filler, offset, info, flags);
-}
-
-int FuseFs::fuse_read(
-    const char* path, char* buf, size_t size, off_t offset, fuse_file_info* info
-) {
-    auto* fs = (FuseFs*)fuse_get_context()->private_data;
-
-    std::lock_guard lock(fs->mutex);
-    return fs->read_file(path, buf, size, offset, info);
-}
-
-int FuseFs::get_attr(
-    const char* path, struct stat* stat, fuse_file_info* info
-) const {
-    (void)info;
-
-    std::memset(stat, 0, sizeof(struct stat));
-
-    if (std::strcmp(path, "/") == 0) {
-        stat->st_mode = S_IFDIR | 0755;
-        stat->st_nlink = 2;
-
-        return 0;
-    }
-
-    if (std::strcmp(path, "/hello.txt") == 0) {
-        stat->st_mode = S_IFREG | 0444;
-        stat->st_nlink = 1;
-        stat->st_size = 13;
-
-        return 0;
-    }
-
-    return -ENOENT;
-}
-
-int FuseFs::read_dir(
-    const char* path,
-    void* buf,
-    fuse_fill_dir_t filler,
-    off_t offset,
-    fuse_file_info* info,
-    fuse_readdir_flags flags
-) const {
     (void)offset;
     (void)info;
     (void)flags;
 
-    if (std::strcmp(path, "/") != 0) {
+    auto [fs, lock] = get_fs_locked();
+
+    auto entry = fs->root->get_entry(path);
+    auto* dir = std::visit(
+        overloads{
+            [](FuseDir* dir) { return dir; },
+            [](FuseFile*) {
+                error("Failed to readdir: this is a regular file");
+                return (FuseDir*)nullptr;
+            },
+            [](none) {
+                error("Faield to readdir: path does not exist");
+                return (FuseDir*)nullptr;
+            },
+        },
+        entry
+    );
+    if (dir == nullptr) {
         return -ENOENT;
     }
 
     filler(buf, ".", NULL, 0, FUSE_FILL_DIR_DEFAULTS);
     filler(buf, "..", NULL, 0, FUSE_FILL_DIR_DEFAULTS);
-    filler(buf, "hello.txt", NULL, 0, FUSE_FILL_DIR_DEFAULTS);
+
+    const auto& entries = dir->view_entries();
+    for (const auto& [name, _] : entries) {
+        filler(buf, name.c_str(), NULL, 0, FUSE_FILL_DIR_DEFAULTS);
+    }
 
     return 0;
 }
 
-int FuseFs::read_file(
+int FuseFs::fuse_read(
     const char* path, char* buf, size_t size, off_t offset, fuse_file_info* info
-) const {
+) {
     (void)info;
 
-    if (std::strcmp(path, "/hello.txt") != 0) {
+    auto [fs, lock] = get_fs_locked();
+
+    auto entry = fs->root->get_entry(path);
+    auto* file = std::visit(
+        overloads{
+            [](FuseFile* file) { return file; },
+            [](FuseDir*) {
+                error("Failed to read: this is a dir");
+                return (FuseFile*)nullptr;
+            },
+            [](none) {
+                error("Faield to rad: path does not exist");
+                return (FuseFile*)nullptr;
+            },
+        },
+        entry
+    );
+    if (file == nullptr) {
         return -ENOENT;
     }
 
-    const char* content = "Hello, world!";
-    size_t len = std::strlen(content);
+    const auto data = file->get_data();
+    const auto* content = data.data();
+    const std::size_t len = data.size();
 
-    if ((std::size_t)offset < len) {
-        if (offset + size > len) {
-            size = len - offset;
-        }
-        std::memcpy(buf, content + offset, size);
-    } else {
-        size = 0;
-    }
-
-    return size;
+    auto bytes_to_write = offset + size <= len ? size : len - offset;
+    std::memcpy(buf, content + offset, bytes_to_write);
+    return bytes_to_write;
 }

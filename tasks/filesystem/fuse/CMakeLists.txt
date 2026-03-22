@@ -2,6 +2,7 @@
 # -------------------- General --------------------
 
 add_executable(fuse_cpu
+    fuse_dir.cpp
     fuse_fs.cpp
     main.cpp
     program.cpp

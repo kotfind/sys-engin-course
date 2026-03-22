@@ -1,11 +1,14 @@
 #include "fuse_fs.hpp"
 #include "log.hpp"
 
+#include <cassert>
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <string_view>
 #include <sys/types.h>
 #include <thread>
+#include <utility>
 
 #define FUSE_USE_VERSION 32
 #include <fuse.h>
@@ -18,7 +21,13 @@ struct fuse_operations FuseFs::fuse_operations = {
     .readdir = FuseFs::fuse_readdir,
 };
 
-FuseFs::FuseFs() : fuse(nullptr) {
+static std::string_view prepare_path(std::string_view path) {
+    assert(path.starts_with("/"));
+    return path.substr(1);
+}
+
+FuseFs::FuseFs(std::unique_ptr<FuseDir> root_dir)
+    : fuse(nullptr), root_dir(std::move(root_dir)) {
 }
 
 FuseFs::~FuseFs() {
@@ -28,8 +37,10 @@ FuseFs::~FuseFs() {
     }
 }
 
-FuseFs* FuseFs::mount(std::string_view mountpath) {
-    auto fs = std::unique_ptr<FuseFs>(new FuseFs());
+FuseFs* FuseFs::mount(
+    std::string_view mountpath, std::unique_ptr<FuseDir> root_dir
+) {
+    auto fs = std::unique_ptr<FuseFs>(new FuseFs(std::move(root_dir)));
 
     fuse_args args;
     {
@@ -56,6 +67,16 @@ FuseFs* FuseFs::mount(std::string_view mountpath) {
     }
 
     return fs.release();
+}
+
+std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
+    auto* ctx = fuse_get_context();
+    assert(ctx != nullptr);
+
+    auto* fs = (FuseFs*)ctx->private_data;
+    std::unique_lock lock{fs->mutex};
+
+    return {fs, std::move(lock)};
 }
 
 int FuseFs::fuse_getattr(

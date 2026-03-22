@@ -8,6 +8,7 @@
 #include <format>
 #include <fstream>
 #include <string>
+#include <string_view>
 
 DynamicProgram::DynamicProgram(
     void* dynlib_handle,
@@ -19,7 +20,7 @@ DynamicProgram::DynamicProgram(
 }
 
 DynamicProgram::~DynamicProgram() {
-    if (dlclose(this->dynlib_handle) != 0) {
+    if (this->dynlib_handle != nullptr && dlclose(this->dynlib_handle) != 0) {
         error("failed to close a dynamic library: {}", dlerror());
     }
 }
@@ -125,4 +126,22 @@ DynamicProgram* DynamicProgram::compile(const std::string& source_code) {
     }
 
     return new DynamicProgram(dynlib_handle, source_code, entry_point_fn);
+}
+
+static int dummy_entry_point_fn(std::uint32_t, std::uint8_t*) {
+    return 0;
+}
+
+static constexpr std::string_view dummy_entry_point_fn_code = R"(
+    #include <cstdint>
+
+    int dummy_entry_point_fn(std::uint32_t, std::uint8_t*) {
+        return 0;
+    }
+)";
+
+DynamicProgram* DynamicProgram::dummy() {
+    return new DynamicProgram(
+        nullptr, std::string(dummy_entry_point_fn_code), dummy_entry_point_fn
+    );
 }

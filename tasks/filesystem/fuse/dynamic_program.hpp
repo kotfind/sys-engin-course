@@ -10,6 +10,8 @@ class DynamicProgram {
 
     static DynamicProgram* compile(const std::string& source_code);
 
+    static DynamicProgram* dummy();
+
     int run(std::uint32_t size, std::uint8_t* data) const;
 
   private:

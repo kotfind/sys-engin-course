@@ -1,9 +1,8 @@
-#include "dynamic_program.hpp"
 #include "log.hpp"
+#include "unit.hpp"
 
 #include <dlfcn.h>
 #include <link.h>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -11,20 +10,30 @@ int main() {
     std::string code = R"(
         #include <algorithm>
         #include <cstdint>
+        #include <chrono>
+        #include <thread>
+
+        using namespace std::chrono_literals;
 
         int entrypoint(uint32_t size, uint8_t* ram) {
             std::sort(ram, ram + size);
+
+            std::this_thread::sleep_for(2s);
+
             return 0;
         }
     )";
 
-    auto prog = std::unique_ptr<DynamicProgram>(DynamicProgram::compile(code));
-    if (prog == nullptr) {
-        exit(1);
-    }
+    auto unit = Unit(0);
 
-    std::vector<uint8_t> data = {5, 4, 3, 2, 1};
-    prog->run(data.size(), data.data());
+    unit.set_program_code(code);
+    unit.set_data({5, 4, 3, 2, 1});
+
+    auto fut = unit.run();
+    std::cout << unit.get_is_running() << std::endl;
+    fut.wait();
+
+    auto data = unit.get_data();
 
     for (auto x : data) {
         info("{}", x);

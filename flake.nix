@@ -25,6 +25,8 @@
           cmake
           mold
 
+          gdb
+
           fuse3
           fuse3.dev
           pkg-config

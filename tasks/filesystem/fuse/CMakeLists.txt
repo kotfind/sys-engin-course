@@ -4,6 +4,7 @@
 add_executable(fuse_cpu
     main.cpp
     dynamic_program.cpp
+    unit.cpp
 )
 
 # -------------------- Fuse --------------------

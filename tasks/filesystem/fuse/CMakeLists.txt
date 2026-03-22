@@ -6,6 +6,7 @@ add_executable(fuse_cpu
     fuse_fs.cpp
     main.cpp
     program.cpp
+    signal_handler.cpp
     unit.cpp
 )
 

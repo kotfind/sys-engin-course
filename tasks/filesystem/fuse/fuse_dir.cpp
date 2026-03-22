@@ -25,6 +25,20 @@ std::pair<std::string_view, std::string_view> split_path_head(
     return {head, tail};
 }
 
+FuseDirEntryRef FuseDirEntryOwned::to_ref() const {
+    return std::visit(
+        overloads{
+            [](const std::unique_ptr<FuseDir>& dir) {
+                return FuseDirEntryRef(dir.get());
+            },
+            [](const std::unique_ptr<FuseFile>& file) {
+                return FuseDirEntryRef(file.get());
+            }
+        },
+        *this
+    );
+}
+
 FuseDirEntryRef FuseDir::get_entry(std::string_view path) {
     path = prepare_path(path);
 

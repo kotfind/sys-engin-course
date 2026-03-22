@@ -15,19 +15,7 @@ struct FuseDirEntryRef : public std::variant<none, FuseDir*, FuseFile*> {};
 
 struct FuseDirEntryOwned
     : public std::variant<std::unique_ptr<FuseDir>, std::unique_ptr<FuseFile>> {
-    FuseDirEntryRef to_ref() const {
-        return std::visit(
-            overloads{
-                [](const std::unique_ptr<FuseDir>& dir) {
-                    return FuseDirEntryRef(dir.get());
-                },
-                [](const std::unique_ptr<FuseFile>& file) {
-                    return FuseDirEntryRef(file.get());
-                }
-            },
-            *this
-        );
-    }
+    FuseDirEntryRef to_ref() const;
 };
 
 class FuseDir {

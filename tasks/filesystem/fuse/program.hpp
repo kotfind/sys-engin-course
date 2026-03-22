@@ -4,13 +4,13 @@
 #include <string>
 #include <string_view>
 
-class DynamicProgram {
+class Program {
   public:
-    ~DynamicProgram();
+    ~Program();
 
-    static DynamicProgram* compile(const std::string& source_code);
+    static Program* compile(const std::string& source_code);
 
-    static DynamicProgram* dummy();
+    static Program* dummy();
 
     int run(std::uint32_t size, std::uint8_t* data) const;
 
@@ -20,7 +20,7 @@ class DynamicProgram {
     static constexpr std::string_view entry_point_fn_mangled_name =
         "_Z10entrypointjPh";
 
-    DynamicProgram(
+    Program(
         void* dynlib_handle,
         const std::string& source_code,
         EntryPointFn entry_point_fn

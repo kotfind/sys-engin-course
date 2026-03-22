@@ -1,13 +1,12 @@
 #include "unit.hpp"
 
-#include "dynamic_program.hpp"
 #include "log.hpp"
+#include "program.hpp"
 
 #include <memory>
 #include <mutex>
 
-Unit::Unit(std::size_t unit_id)
-    : id(unit_id), program(DynamicProgram::dummy()) {
+Unit::Unit(std::size_t unit_id) : id(unit_id), program(Program::dummy()) {
     info("Created unit {}", unit_id);
 }
 
@@ -30,13 +29,13 @@ bool Unit::get_is_running() const {
 bool Unit::set_program_code(const std::string& source_code) {
     auto lock = this->wait_until_finished();
 
-    auto* new_program = DynamicProgram::compile(source_code);
+    auto* new_program = Program::compile(source_code);
     if (new_program != nullptr) {
         this->program.reset(new_program);
         info("Updated program for unit {}", this->id);
         return true;
     } else {
-        this->program.reset(DynamicProgram::dummy());
+        this->program.reset(Program::dummy());
         error("Failed to update program for unit {}", this->id);
         return false;
     }

@@ -3,7 +3,7 @@
 
 add_executable(fuse_cpu
     main.cpp
-    dynamic_program.cpp
+    program.cpp
     unit.cpp
 )
 

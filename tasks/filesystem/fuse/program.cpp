@@ -1,4 +1,4 @@
-#include "dynamic_program.hpp"
+#include "program.hpp"
 #include "log.hpp"
 
 #include <array>
@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-DynamicProgram::DynamicProgram(
+Program::Program(
     void* dynlib_handle,
     const std::string& source_code,
     EntryPointFn entry_point_fn
@@ -19,13 +19,13 @@ DynamicProgram::DynamicProgram(
       entry_point_fn(entry_point_fn) {
 }
 
-DynamicProgram::~DynamicProgram() {
+Program::~Program() {
     if (this->dynlib_handle != nullptr && dlclose(this->dynlib_handle) != 0) {
         error("failed to close a dynamic library: {}", dlerror());
     }
 }
 
-int DynamicProgram::run(std::uint32_t size, std::uint8_t* data) const {
+int Program::run(std::uint32_t size, std::uint8_t* data) const {
     return this->entry_point_fn(size, data);
 }
 
@@ -99,7 +99,7 @@ static bool compile_dynlib(
     return true;
 }
 
-DynamicProgram* DynamicProgram::compile(const std::string& source_code) {
+Program* Program::compile(const std::string& source_code) {
     std::string tmp_dir;
     if (!create_temdir(tmp_dir)) {
         return nullptr;
@@ -129,7 +129,7 @@ DynamicProgram* DynamicProgram::compile(const std::string& source_code) {
         return nullptr;
     }
 
-    return new DynamicProgram(dynlib_handle, source_code, entry_point_fn);
+    return new Program(dynlib_handle, source_code, entry_point_fn);
 }
 
 static int dummy_entry_point_fn(std::uint32_t, std::uint8_t*) {
@@ -144,8 +144,8 @@ static constexpr std::string_view dummy_entry_point_fn_code = R"(
     }
 )";
 
-DynamicProgram* DynamicProgram::dummy() {
-    return new DynamicProgram(
+Program* Program::dummy() {
+    return new Program(
         nullptr, std::string(dummy_entry_point_fn_code), dummy_entry_point_fn
     );
 }

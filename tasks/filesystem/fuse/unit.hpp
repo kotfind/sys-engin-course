@@ -1,11 +1,10 @@
 #pragma once
 
-#include "dynamic_program.hpp"
+#include "program.hpp"
 
 #include <condition_variable>
 #include <cstdint>
 #include <future>
-#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -36,7 +35,7 @@ class Unit {
 
     const std::size_t id;
 
-    std::unique_ptr<DynamicProgram> program;
+    std::unique_ptr<Program> program;
 
     std::vector<std::uint8_t> data;
 

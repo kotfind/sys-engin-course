@@ -24,8 +24,10 @@
 #pragma clang diagnostic ignored "-Wmissing-designated-field-initializers"
 struct fuse_operations FuseFs::fuse_operations = {
     .getattr = FuseFs::fuse_getattr,
+    .open = FuseFs::fuse_open,
     .read = FuseFs::fuse_read,
     .readdir = FuseFs::fuse_readdir,
+    .init = FuseFs::fuse_init,
 };
 
 FuseFs::FuseFs(std::unique_ptr<FuseDir> root)
@@ -79,14 +81,79 @@ FuseFs* FuseFs::mount(
     return fs.release();
 }
 
+bool FuseFs::set_file_data(
+    std::string_view path, std::span<const std::byte> data
+) {
+    std::unique_lock lock{this->mutex};
+    return set_file_data_no_lock(path, data);
+}
+
+bool FuseFs::set_file_data_no_lock(
+    std::string_view path, std::span<const std::byte> data
+) {
+    info("Setting data for file {}", path);
+
+    auto entry = this->root->get_entry(path);
+    auto* file = std::visit(
+        overloads{
+            [](FuseFile* file) { return file; },
+            [](FuseDir*) {
+                error("Failed to write to a file: this is a dir");
+                return (FuseFile*)nullptr;
+            },
+            [](none) {
+                error("Faield to write to a file: path does not exist");
+                return (FuseFile*)nullptr;
+            },
+        },
+        entry
+    );
+    if (file == nullptr) {
+        return false;
+    }
+
+    file->set_data_unsafe(data);
+    fuse_invalidate_path(this->fuse, path.data());
+
+    success("Updated data for file {}", path);
+    return true;
+}
+
 std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
     auto* ctx = fuse_get_context();
     assert(ctx != nullptr);
 
     auto* fs = (FuseFs*)ctx->private_data;
+    assert(fs != nullptr);
+
     std::unique_lock lock{fs->mutex};
 
     return {fs, std::move(lock)};
+}
+
+void* FuseFs::fuse_init(fuse_conn_info* con, fuse_config* cfg) {
+    (void)con;
+
+    constexpr double SOME_BIG_NUMBER_SECS = 1'000'000;
+
+    // We invalidate cache manually on each file modification,
+    // so timeout mechanism can be "disabled".
+
+    cfg->entry_timeout = SOME_BIG_NUMBER_SECS;
+    cfg->entry_timeout = SOME_BIG_NUMBER_SECS;
+    cfg->negative_timeout = 0;
+
+    return fuse_get_context()->private_data;
+}
+
+int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
+    (void)path;
+
+    // We invalidate cache manually on each file modification anyway.
+
+    file_info->keep_cache = 1;
+
+    return 0;
 }
 
 int FuseFs::fuse_getattr(
@@ -104,7 +171,7 @@ int FuseFs::fuse_getattr(
             [stat](FuseFile* file) {
                 stat->st_mode = S_IFREG | 0444;
                 stat->st_nlink = 1;
-                stat->st_size = file->get_data().size();
+                stat->st_size = file->read().size();
 
                 return 0;
             },
@@ -155,12 +222,12 @@ int FuseFs::fuse_readdir(
         return -ENOENT;
     }
 
-    filler(buf, ".", NULL, 0, FUSE_FILL_DIR_DEFAULTS);
-    filler(buf, "..", NULL, 0, FUSE_FILL_DIR_DEFAULTS);
+    filler(buf, ".", nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
+    filler(buf, "..", nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
 
     const auto& entries = dir->view_entries();
     for (const auto& [name, _] : entries) {
-        filler(buf, name.c_str(), NULL, 0, FUSE_FILL_DIR_DEFAULTS);
+        filler(buf, name.c_str(), nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
     }
 
     return 0;
@@ -188,7 +255,7 @@ int FuseFs::fuse_read(
                 return (FuseFile*)nullptr;
             },
             [](none) {
-                error("Faield to rad: path does not exist");
+                error("Faield to read: path does not exist");
                 return (FuseFile*)nullptr;
             },
         },
@@ -198,7 +265,7 @@ int FuseFs::fuse_read(
         return -ENOENT;
     }
 
-    const auto data = file->get_data();
+    const auto data = file->read();
     const auto* content = data.data();
     const std::size_t len = data.size();
 

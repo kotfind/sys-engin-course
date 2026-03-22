@@ -2,9 +2,12 @@
 
 #include "fuse_dir.hpp"
 
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <span>
+#include <string_view>
 #include <utility>
 
 #define FUSE_USE_VERSION 32
@@ -18,6 +21,12 @@ class FuseFs {
         std::filesystem::path mount_path, std::unique_ptr<FuseDir> root
     );
 
+    bool set_file_data(std::string_view path, std::span<const std::byte> data);
+
+    bool set_file_data_no_lock(
+        std::string_view path, std::span<const std::byte> data
+    );
+
   private:
     FuseFs(std::unique_ptr<FuseDir> root);
 
@@ -25,6 +34,10 @@ class FuseFs {
 
     // NOTE: !!! Can be called from within fuse operation handlers only
     static std::pair<FuseFs*, std::unique_lock<std::mutex>> get_fs_locked();
+
+    static void* fuse_init(fuse_conn_info* con, fuse_config* cfg);
+
+    static int fuse_open(const char* path, fuse_file_info* file_info);
 
     static int fuse_getattr(
         const char* path, struct stat* stat, fuse_file_info* info

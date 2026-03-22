@@ -7,6 +7,9 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <span>
+#include <string_view>
+#include <thread>
 
 using namespace std::chrono_literals;
 
@@ -35,17 +38,25 @@ int main() {
 
     root_dir->add_entry("/a", {std::make_unique<FuseDir>()});
     root_dir->add_entry("a/b", {std::make_unique<FuseDir>()});
-    root_dir->add_entry("/a/b/1.txt", {std::make_unique<FuseFile>()});
+    root_dir->add_entry("/a/b/1.txt", {std::make_unique<SimpleFuseFile>()});
 
     root_dir->add_entry("c", {std::make_unique<FuseDir>()});
     root_dir->add_entry("d", {std::make_unique<FuseDir>()});
-    root_dir->add_entry("d/2.txt", {std::make_unique<FuseFile>()});
+    root_dir->add_entry("d/2.txt", {std::make_unique<SimpleFuseFile>()});
 
     auto fs =
         std::unique_ptr<FuseFs>(FuseFs::mount("./mnt", std::move(root_dir)));
     if (fs == nullptr) {
         return 1;
     }
+
+    std::thread([&fs]() {
+        std::this_thread::sleep_for(2s);
+        static std::string_view data = "One two three";
+        fs->set_file_data(
+            "/a/b/1.txt", std::span((std::byte*)data.data(), data.size())
+        );
+    }).detach();
 
     std::mutex mutex;
     std::unique_lock lock{mutex};

@@ -24,6 +24,10 @@
           clang
           cmake
           mold
+
+          fuse3
+          fuse3.dev
+          pkg-config
         ];
 
         hardeningDisable = ["all"];

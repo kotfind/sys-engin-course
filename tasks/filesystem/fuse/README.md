@@ -36,7 +36,7 @@
     $ cat testdata.bin > /dev/mycpu/unit1/lram
     $ cat | tee /dev/unit0/pram /dev/unit1/pram
     #include <algorithm>
-    
+
     int entrypoint(uint32_t size, uint8_t* ram)
     {
         std::sort(ram, ram + size);

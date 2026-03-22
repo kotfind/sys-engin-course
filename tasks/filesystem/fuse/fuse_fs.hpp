@@ -2,9 +2,9 @@
 
 #include "fuse_dir.hpp"
 
+#include <filesystem>
 #include <memory>
 #include <mutex>
-#include <string_view>
 #include <utility>
 
 #define FUSE_USE_VERSION 32
@@ -15,7 +15,7 @@ class FuseFs {
     ~FuseFs();
 
     static FuseFs* mount(
-        std::string_view mountpath, std::unique_ptr<FuseDir> root
+        std::filesystem::path mount_path, std::unique_ptr<FuseDir> root
     );
 
   private:

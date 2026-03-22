@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <string_view>
@@ -39,8 +40,11 @@ FuseFs::~FuseFs() {
 }
 
 FuseFs* FuseFs::mount(
-    std::string_view mountpath, std::unique_ptr<FuseDir> root
+    std::filesystem::path mount_path_, std::unique_ptr<FuseDir> root
 ) {
+    auto mount_path = std::filesystem::absolute(mount_path_).lexically_normal();
+    info("Trying to mount at `{}`", mount_path.string());
+
     auto fs = std::unique_ptr<FuseFs>(new FuseFs(std::move(root)));
 
     fuse_args args;
@@ -59,7 +63,7 @@ FuseFs* FuseFs::mount(
         return nullptr;
     }
 
-    if (fuse_mount(fs->fuse, mountpath.data()) != 0) {
+    if (fuse_mount(fs->fuse, mount_path.c_str()) != 0) {
         error("Failed to mount FUSE");
         return nullptr;
     }
@@ -69,6 +73,7 @@ FuseFs* FuseFs::mount(
         std::thread([fuse] { fuse_loop(fuse); }).detach();
     }
 
+    success("Mounted at `{}`", mount_path.string());
     return fs.release();
 }
 
@@ -83,11 +88,13 @@ std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
 }
 
 int FuseFs::fuse_getattr(
-    const char* path, struct stat* stat, fuse_file_info* info
+    const char* path, struct stat* stat, fuse_file_info* file_info
 ) {
-    (void)info;
+    (void)file_info;
 
     auto [fs, lock] = get_fs_locked();
+
+    info("FUSE request: getattr {}", path);
 
     auto entry = fs->root->get_entry(path);
     return std::visit(
@@ -116,12 +123,14 @@ int FuseFs::fuse_readdir(
     void* buf,
     fuse_fill_dir_t filler,
     off_t offset,
-    fuse_file_info* info,
+    fuse_file_info* file_info,
     fuse_readdir_flags flags
 ) {
     (void)offset;
-    (void)info;
+    (void)file_info;
     (void)flags;
+
+    info("FUSE request: readdir {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
@@ -156,9 +165,15 @@ int FuseFs::fuse_readdir(
 }
 
 int FuseFs::fuse_read(
-    const char* path, char* buf, size_t size, off_t offset, fuse_file_info* info
+    const char* path,
+    char* buf,
+    size_t size,
+    off_t offset,
+    fuse_file_info* file_info
 ) {
-    (void)info;
+    (void)file_info;
+
+    info("FUSE request: read {}", path);
 
     auto [fs, lock] = get_fs_locked();
 

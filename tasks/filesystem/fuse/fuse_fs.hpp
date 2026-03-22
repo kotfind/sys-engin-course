@@ -21,7 +21,7 @@ class FuseFs {
   private:
     FuseFs(std::unique_ptr<FuseDir> root);
 
-    static struct fuse_operations fuse_operations;
+    static fuse_operations fuse_operations;
 
     // NOTE: !!! Can be called from within fuse operation handlers only
     static std::pair<FuseFs*, std::unique_lock<std::mutex>> get_fs_locked();
@@ -49,7 +49,8 @@ class FuseFs {
 
     mutable std::mutex mutex;
 
-    struct fuse* fuse;
+    fuse_args fuse_args;
+    fuse* fuse;
 
     std::unique_ptr<FuseDir> root;
 };

@@ -33,6 +33,10 @@ FuseFs::FuseFs(std::unique_ptr<FuseDir> root)
 }
 
 FuseFs::~FuseFs() {
+    if (this->fuse_args.argc != 0) {
+        fuse_opt_free_args(&this->fuse_args);
+    }
+
     if (this->fuse != nullptr) {
         fuse_unmount(this->fuse);
         fuse_destroy(this->fuse);
@@ -47,17 +51,15 @@ FuseFs* FuseFs::mount(
 
     auto fs = std::unique_ptr<FuseFs>(new FuseFs(std::move(root)));
 
-    fuse_args args;
     {
-        static std::string dummy = "dummy";
-        static char* dummy_argv[] = {dummy.data(), NULL};
-        args = FUSE_ARGS_INIT(1, dummy_argv);
+        static char dummy[] = "dummy\0";
+        static char* dummy_argv[] = {dummy, NULL};
+        fs->fuse_args = FUSE_ARGS_INIT(1, dummy_argv);
     }
 
-    // WARN: the following line causes a memory leak.
-    // idk why: FuseFs' destructor is properly called
-    fs->fuse =
-        fuse_new(&args, &fuse_operations, sizeof(fuse_operations), fs.get());
+    fs->fuse = fuse_new(
+        &fs->fuse_args, &fuse_operations, sizeof(fuse_operations), fs.get()
+    );
     if (fs->fuse == nullptr) {
         error("Failed to init FUSE");
         return nullptr;

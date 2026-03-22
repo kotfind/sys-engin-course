@@ -1,7 +1,7 @@
-#include "log.hpp"
 #include "unit.hpp"
 
 #include <dlfcn.h>
+#include <iostream>
 #include <link.h>
 #include <string>
 #include <vector>
@@ -36,6 +36,6 @@ int main() {
     auto data = unit.get_data();
 
     for (auto x : data) {
-        info("{}", x);
+        std::cout << (int)x << " ";
     }
 }

@@ -59,12 +59,15 @@ static bool write_code_file(
 static bool compile_dynlib(
     const std::string& code_file, const std::string& dynlib_file
 ) {
+    info("Compiling a dynamic program");
+
     auto cmd = std::format(
         "clang++ -shared -fPIC {} -fuse-ld=mold -O2 -g0 -o {} 2>&1",
         code_file,
         dynlib_file
     );
-    info("{}", cmd);
+    info("Running: {}", cmd);
+
     auto* pipe = popen(cmd.c_str(), "r");
     if (pipe == nullptr) {
         error("failed to run clang: {}", strerror(errno));
@@ -92,6 +95,7 @@ static bool compile_dynlib(
         return false;
     }
 
+    success("Successfully compiled a dynamic program");
     return true;
 }
 

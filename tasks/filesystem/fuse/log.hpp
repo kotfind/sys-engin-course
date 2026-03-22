@@ -54,6 +54,6 @@ void info(std::format_string<Args...>&& fmt, Args&&... args) {
 }
 
 template <typename... Args>
-void info_success(std::format_string<Args...>&& fmt, Args&&... args) {
+void success(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("INF", ANSI_BOLD_GREEN, std::move(fmt), std::forward<Args>(args)...);
 }

@@ -28,6 +28,8 @@
           fuse3
           fuse3.dev
           pkg-config
+
+          doxygen
         ];
 
         hardeningDisable = ["all"];

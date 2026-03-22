@@ -20,7 +20,7 @@
         buildInputs = with pkgs; [
           catch2
           ccache
-          ccls
+          clang-tools # !!! put before `clang`
           clang
           cmake
           mold

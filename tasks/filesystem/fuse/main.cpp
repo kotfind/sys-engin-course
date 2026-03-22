@@ -33,7 +33,7 @@ int main() {
     std::cout << unit.get_is_running() << std::endl;
     fut.wait();
 
-    auto data = unit.get_data();
+    auto data = unit.copy_data();
 
     for (auto x : data) {
         std::cout << (int)x << " ";

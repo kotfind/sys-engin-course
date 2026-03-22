@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <mutex>
+#include <vector>
 
 Unit::Unit(std::size_t unit_id) : id(unit_id), program(Program::dummy()) {
     info("Created unit {}", unit_id);
@@ -49,7 +50,7 @@ void Unit::set_data(const std::vector<std::uint8_t>& data) {
     this->data = data;
 }
 
-std::vector<std::uint8_t> Unit::get_data() const {
+std::vector<std::uint8_t> Unit::copy_data() const {
     auto lock = this->wait_until_finished();
 
     return this->data;

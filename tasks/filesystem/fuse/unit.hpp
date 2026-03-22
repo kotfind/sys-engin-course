@@ -20,7 +20,7 @@ class Unit {
 
     void set_data(const std::vector<std::uint8_t>& data);
 
-    std::vector<std::uint8_t> get_data() const;
+    std::vector<std::uint8_t> copy_data() const;
 
     int get_status_code() const;
 

@@ -1,5 +1,6 @@
 #include "fuse_fs.hpp"
 #include "fuse_dir.hpp"
+#include "fuse_entry.hpp"
 #include "fuse_file.hpp"
 #include "helpers.hpp"
 #include "log.hpp"
@@ -7,6 +8,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <memory>
@@ -89,35 +91,86 @@ std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
     return {fs, std::move(lock)};
 }
 
-int FuseFs::fuse_getattr(
-    const char* path, struct stat* stat, fuse_file_info* file_info
-) {
-    (void)file_info;
-
+int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
     auto [fs, lock] = get_fs_locked();
 
-    info("FUSE request: getattr {}", path);
+    info("FUSE request: open {}", path);
 
     auto entry = fs->root->get_entry(path);
     return std::visit(
         overloads{
-            [stat](FuseFile* file) {
-                stat->st_mode = S_IFREG | 0444;
-                stat->st_nlink = 1;
-                stat->st_size = file->get_data().size();
-
+            [file_info](FuseDir*) {
+                error("Failed to open: this is a directory");
+                file_info->fh = 0;
+                return -EISDIR;
+            },
+            [file_info](FuseFile* file) {
+                file_info->fh = (uint64_t)file;
                 return 0;
             },
-            [stat](FuseDir*) {
-                stat->st_mode = S_IFDIR | 0755;
-                stat->st_nlink = 2;
-
-                return 0;
+            [file_info](none) {
+                error("Faield to open: path does not exist");
+                file_info->fh = 0;
+                return -ENOENT;
             },
-            [](none) { return -ENOENT; },
         },
         entry
     );
+}
+
+int FuseFs::fuse_opendir(const char* path, fuse_file_info* file_info) {
+    auto [fs, lock] = get_fs_locked();
+
+    info("FUSE request: opendir {}", path);
+
+    auto entry = fs->root->get_entry(path);
+    return std::visit(
+        overloads{
+            [file_info](FuseDir* dir) {
+                file_info->fh = (uint64_t)dir;
+                return 0;
+            },
+            [file_info](FuseFile*) {
+                error("Failed to opendir: this is a regular file");
+                file_info->fh = 0;
+                return -ENOTDIR;
+            },
+            [file_info](none) {
+                error("Faield to opendir: path does not exist");
+                file_info->fh = 0;
+                return -ENOENT;
+            },
+        },
+        entry
+    );
+}
+
+int FuseFs::fuse_getattr(
+    const char* path, struct stat* stat, fuse_file_info* file_info
+) {
+    auto [fs, lock] = get_fs_locked();
+
+    info("FUSE request: getattr {}", path);
+
+    auto* entry = (FuseEntry*)file_info->fh;
+    if (entry == nullptr) {
+        return -ENOENT;
+    }
+
+    switch (entry->get_entry_type()) {
+    case FuseEntryType::File:
+        stat->st_mode = S_IFREG | 0444;
+        stat->st_nlink = 1;
+        stat->st_size = ((FuseFile*)entry)->get_data().size();
+        break;
+
+    case FuseEntryType::Dir:
+        stat->st_mode = S_IFDIR | 0755;
+        stat->st_nlink = 2;
+        break;
+    }
+
+    return 0;
 }
 
 int FuseFs::fuse_readdir(
@@ -129,28 +182,13 @@ int FuseFs::fuse_readdir(
     fuse_readdir_flags flags
 ) {
     (void)offset;
-    (void)file_info;
     (void)flags;
 
     info("FUSE request: readdir {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
-    auto entry = fs->root->get_entry(path);
-    auto* dir = std::visit(
-        overloads{
-            [](FuseDir* dir) { return dir; },
-            [](FuseFile*) {
-                error("Failed to readdir: this is a regular file");
-                return (FuseDir*)nullptr;
-            },
-            [](none) {
-                error("Faield to readdir: path does not exist");
-                return (FuseDir*)nullptr;
-            },
-        },
-        entry
-    );
+    auto* dir = (FuseDir*)file_info->fh;
     if (dir == nullptr) {
         return -ENOENT;
     }
@@ -173,27 +211,11 @@ int FuseFs::fuse_read(
     off_t offset,
     fuse_file_info* file_info
 ) {
-    (void)file_info;
-
     info("FUSE request: read {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
-    auto entry = fs->root->get_entry(path);
-    auto* file = std::visit(
-        overloads{
-            [](FuseFile* file) { return file; },
-            [](FuseDir*) {
-                error("Failed to read: this is a dir");
-                return (FuseFile*)nullptr;
-            },
-            [](none) {
-                error("Faield to rad: path does not exist");
-                return (FuseFile*)nullptr;
-            },
-        },
-        entry
-    );
+    auto* file = (FuseFile*)file_info->fh;
     if (file == nullptr) {
         return -ENOENT;
     }

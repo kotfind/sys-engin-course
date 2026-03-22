@@ -1,11 +1,12 @@
 #pragma once
 
+#include "fuse_entry.hpp"
 #include <span>
 #include <string_view>
 
-class FuseFile {
+class FuseFile : FuseEntry {
   public:
-    FuseFile() {
+    FuseFile() : FuseEntry(FuseEntryType::File) {
         // TODO: REMOVE ME
     }
 

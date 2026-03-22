@@ -1,37 +1,15 @@
 #pragma once
 
-#include "fuse_file.hpp"
-#include "helpers.hpp"
+#include "fuse_entry.hpp"
 
-#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <variant>
 
-class FuseDir;
-
-struct FuseDirEntryRef : public std::variant<none, FuseDir*, FuseFile*> {};
-
-struct FuseDirEntryOwned
-    : public std::variant<std::unique_ptr<FuseDir>, std::unique_ptr<FuseFile>> {
-    FuseDirEntryRef to_ref() const {
-        return std::visit(
-            overloads{
-                [](const std::unique_ptr<FuseDir>& dir) {
-                    return FuseDirEntryRef(dir.get());
-                },
-                [](const std::unique_ptr<FuseFile>& file) {
-                    return FuseDirEntryRef(file.get());
-                }
-            },
-            *this
-        );
-    }
-};
-
-class FuseDir {
+class FuseDir : FuseEntry {
   public:
+    FuseDir();
+
     FuseDirEntryRef get_entry(std::string_view path);
 
     bool add_entry(std::string_view path, FuseDirEntryOwned entry);

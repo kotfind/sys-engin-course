@@ -25,6 +25,9 @@ std::pair<std::string_view, std::string_view> split_path_head(
     return {head, tail};
 }
 
+FuseDir::FuseDir() : FuseEntry(FuseEntryType::Dir) {
+}
+
 FuseDirEntryRef FuseDir::get_entry(std::string_view path) {
     path = prepare_path(path);
 

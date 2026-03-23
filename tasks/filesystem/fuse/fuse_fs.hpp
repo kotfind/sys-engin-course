@@ -18,7 +18,7 @@ class FuseFs {
     ~FuseFs();
 
     static FuseFs* mount(
-        std::filesystem::path mount_path, std::unique_ptr<FuseDir> root
+        const std::filesystem::path& mount_path, std::unique_ptr<FuseDir> root
     );
 
     bool set_file_data(std::string_view path, std::span<const std::byte> data);

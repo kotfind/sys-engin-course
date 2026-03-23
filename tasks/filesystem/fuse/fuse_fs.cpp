@@ -53,7 +53,7 @@ FuseFs::~FuseFs() {
 }
 
 FuseFs* FuseFs::mount(
-    std::filesystem::path mount_path_, std::unique_ptr<FuseDir> root
+    const std::filesystem::path& mount_path_, std::unique_ptr<FuseDir> root
 ) {
     auto mount_path = std::filesystem::absolute(mount_path_).lexically_normal();
     info("Trying to mount at `{}`", mount_path.string());

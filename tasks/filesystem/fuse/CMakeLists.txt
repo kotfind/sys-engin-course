@@ -2,6 +2,8 @@
 # -------------------- General --------------------
 
 add_executable(fuse_cpu
+    ctrl_file.cpp
+    fuse_cpu.cpp
     fuse_dir.cpp
     fuse_file.cpp
     fuse_fs.cpp
@@ -9,6 +11,7 @@ add_executable(fuse_cpu
     program.cpp
     signal_handler.cpp
     unit.cpp
+    unit_file.cpp
 )
 
 # -------------------- Fuse --------------------

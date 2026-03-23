@@ -20,6 +20,14 @@ struct FuseDirEntryOwned
 
 class FuseDir {
   public:
+    FuseDir* get_dir(std::string_view path);
+
+    FuseFile* get_file(std::string_view path);
+
+    bool add_dir(std::string_view path, std::unique_ptr<FuseDir> dir);
+
+    bool add_file(std::string_view path, std::unique_ptr<FuseFile> file);
+
     FuseDirEntryRef get_entry(std::string_view path);
 
     bool add_entry(std::string_view path, FuseDirEntryOwned entry);

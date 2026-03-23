@@ -36,13 +36,13 @@ int main() {
     // \- d
     //    \- 2.txt
 
-    root_dir->add_entry("/a", {std::make_unique<FuseDir>()});
-    root_dir->add_entry("a/b", {std::make_unique<FuseDir>()});
-    root_dir->add_entry("/a/b/1.txt", {std::make_unique<SimpleFuseFile>()});
+    root_dir->add_dir("/a", std::make_unique<FuseDir>());
+    root_dir->add_dir("a/b", std::make_unique<FuseDir>());
+    root_dir->add_file("/a/b/1.txt", std::make_unique<SimpleFuseFile>());
 
-    root_dir->add_entry("c", {std::make_unique<FuseDir>()});
-    root_dir->add_entry("d", {std::make_unique<FuseDir>()});
-    root_dir->add_entry("d/2.txt", {std::make_unique<SimpleFuseFile>()});
+    root_dir->add_dir("c", std::make_unique<FuseDir>());
+    root_dir->add_dir("d", std::make_unique<FuseDir>());
+    root_dir->add_file("d/2.txt", std::make_unique<SimpleFuseFile>());
 
     auto fs =
         std::unique_ptr<FuseFs>(FuseFs::mount("./mnt", std::move(root_dir)));

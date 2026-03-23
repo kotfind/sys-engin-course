@@ -100,21 +100,7 @@ bool FuseFs::set_file_data_no_lock(
 ) {
     info("Setting data for file {}", path);
 
-    auto entry = this->root->get_entry(path);
-    auto* file = std::visit(
-        overloads{
-            [](FuseFile* file) { return file; },
-            [](FuseDir*) {
-                error("Failed to write to a file: this is a dir");
-                return (FuseFile*)nullptr;
-            },
-            [](none) {
-                error("Faield to write to a file: path does not exist");
-                return (FuseFile*)nullptr;
-            },
-        },
-        entry
-    );
+    auto* file = this->root->get_file(path);
     if (file == nullptr) {
         return false;
     }
@@ -210,24 +196,7 @@ int FuseFs::fuse_readdir(
 
     auto [fs, lock] = get_fs_locked();
 
-    auto entry = fs->root->get_entry(path);
-    auto* dir = std::visit(
-        overloads{
-            [](FuseDir* dir) { return dir; },
-            [](FuseFile*) {
-                error("Failed to readdir: this is a regular file");
-                return (FuseDir*)nullptr;
-            },
-            [](none) {
-                error("Faield to readdir: path does not exist");
-                return (FuseDir*)nullptr;
-            },
-        },
-        entry
-    );
-    if (dir == nullptr) {
-        return -ENOENT;
-    }
+    auto* dir = fs->root->get_dir(path);
 
     filler(buf, ".", nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
     filler(buf, "..", nullptr, 0, FUSE_FILL_DIR_DEFAULTS);
@@ -253,21 +222,7 @@ int FuseFs::fuse_read(
 
     auto [fs, lock] = get_fs_locked();
 
-    auto entry = fs->root->get_entry(path);
-    auto* file = std::visit(
-        overloads{
-            [](FuseFile* file) { return file; },
-            [](FuseDir*) {
-                error("Failed to read: this is a dir");
-                return (FuseFile*)nullptr;
-            },
-            [](none) {
-                error("Faield to read: path does not exist");
-                return (FuseFile*)nullptr;
-            },
-        },
-        entry
-    );
+    auto* file = fs->root->get_file(path);
     if (file == nullptr) {
         return -ENOENT;
     }
@@ -295,21 +250,7 @@ int FuseFs::fuse_write(
 
     auto [fs, lock] = get_fs_locked();
 
-    auto entry = fs->root->get_entry(path);
-    auto* file = std::visit(
-        overloads{
-            [](FuseFile* file) { return file; },
-            [](FuseDir*) {
-                error("Failed to read: this is a dir");
-                return (FuseFile*)nullptr;
-            },
-            [](none) {
-                error("Faield to read: path does not exist");
-                return (FuseFile*)nullptr;
-            },
-        },
-        entry
-    );
+    auto* file = fs->root->get_file(path);
     if (file == nullptr) {
         return -ENOENT;
     }
@@ -342,21 +283,7 @@ int FuseFs::fuse_truncate(
 
     auto [fs, lock] = get_fs_locked();
 
-    auto entry = fs->root->get_entry(path);
-    auto* file = std::visit(
-        overloads{
-            [](FuseFile* file) { return file; },
-            [](FuseDir*) {
-                error("Failed to read: this is a dir");
-                return (FuseFile*)nullptr;
-            },
-            [](none) {
-                error("Faield to read: path does not exist");
-                return (FuseFile*)nullptr;
-            },
-        },
-        entry
-    );
+    auto* file = fs->root->get_file(path);
     if (file == nullptr) {
         return -ENOENT;
     }

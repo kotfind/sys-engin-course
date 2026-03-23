@@ -39,6 +39,50 @@ FuseDirEntryRef FuseDirEntryOwned::to_ref() const {
     );
 }
 
+FuseDir* FuseDir::get_dir(std::string_view path) {
+    auto entry = this->get_entry(path);
+    return std::visit(
+        overloads{
+            [](FuseDir* dir) { return dir; },
+            [](FuseFile*) {
+                error("Failed to get dir: this is a regular file");
+                return (FuseDir*)nullptr;
+            },
+            [](none) {
+                error("Faield to get dir: path does not exist");
+                return (FuseDir*)nullptr;
+            },
+        },
+        entry
+    );
+}
+
+FuseFile* FuseDir::get_file(std::string_view path) {
+    auto entry = this->get_entry(path);
+    return std::visit(
+        overloads{
+            [](FuseFile* file) { return file; },
+            [](FuseDir*) {
+                error("Failed to get file: this is a dir");
+                return (FuseFile*)nullptr;
+            },
+            [](none) {
+                error("Failed to get file: path does not exist");
+                return (FuseFile*)nullptr;
+            },
+        },
+        entry
+    );
+}
+
+bool FuseDir::add_dir(std::string_view path, std::unique_ptr<FuseDir> dir) {
+    return this->add_entry(path, {std::move(dir)});
+}
+
+bool FuseDir::add_file(std::string_view path, std::unique_ptr<FuseFile> file) {
+    return this->add_entry(path, {std::move(file)});
+}
+
 FuseDirEntryRef FuseDir::get_entry(std::string_view path) {
     path = prepare_path(path);
 

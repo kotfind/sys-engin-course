@@ -4,18 +4,23 @@
 #include "helpers.hpp"
 #include "log.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
+#include <fcntl.h>
 #include <filesystem>
+#include <iterator>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <string_view>
 #include <sys/types.h>
 #include <thread>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #define FUSE_USE_VERSION 32
 #include <fuse.h>
@@ -24,8 +29,10 @@
 #pragma clang diagnostic ignored "-Wmissing-designated-field-initializers"
 struct fuse_operations FuseFs::fuse_operations = {
     .getattr = FuseFs::fuse_getattr,
+    .truncate = FuseFs::fuse_truncate,
     .open = FuseFs::fuse_open,
     .read = FuseFs::fuse_read,
+    .write = FuseFs::fuse_write,
     .readdir = FuseFs::fuse_readdir,
     .init = FuseFs::fuse_init,
 };
@@ -112,7 +119,7 @@ bool FuseFs::set_file_data_no_lock(
         return false;
     }
 
-    file->set_data_unsafe(data);
+    file->set_data_no_invalidate(data);
     fuse_invalidate_path(this->fuse, path.data());
 
     success("Updated data for file {}", path);
@@ -149,9 +156,9 @@ void* FuseFs::fuse_init(fuse_conn_info* con, fuse_config* cfg) {
 int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
     (void)path;
 
-    // We invalidate cache manually on each file modification anyway.
-
-    file_info->keep_cache = 1;
+    if (file_info->flags & O_TRUNC) {
+        fuse_truncate(path, 0, file_info);
+    }
 
     return 0;
 }
@@ -161,9 +168,9 @@ int FuseFs::fuse_getattr(
 ) {
     (void)file_info;
 
-    auto [fs, lock] = get_fs_locked();
-
     info("FUSE request: getattr {}", path);
+
+    auto [fs, lock] = get_fs_locked();
 
     auto entry = fs->root->get_entry(path);
     return std::visit(
@@ -272,4 +279,93 @@ int FuseFs::fuse_read(
     auto bytes_to_write = offset + size <= len ? size : len - offset;
     std::memcpy(buf, content + offset, bytes_to_write);
     return bytes_to_write;
+}
+
+int FuseFs::fuse_write(
+    const char* path,
+    const char* buf,
+    size_t size,
+    off_t offset,
+    fuse_file_info* file_info
+) {
+    (void)file_info;
+
+    warn("write size={}, offset={}", size, offset);
+    info("FUSE request: write {}", path);
+
+    auto [fs, lock] = get_fs_locked();
+
+    auto entry = fs->root->get_entry(path);
+    auto* file = std::visit(
+        overloads{
+            [](FuseFile* file) { return file; },
+            [](FuseDir*) {
+                error("Failed to read: this is a dir");
+                return (FuseFile*)nullptr;
+            },
+            [](none) {
+                error("Faield to read: path does not exist");
+                return (FuseFile*)nullptr;
+            },
+        },
+        entry
+    );
+    if (file == nullptr) {
+        return -ENOENT;
+    }
+
+    auto old_data = file->read();
+    auto new_data = std::as_bytes(std::span<const char>{buf, size});
+
+    std::vector<std::byte> data(std::max(offset + size, old_data.size()));
+
+    // NOTE: While this implementation with lots of copying isn't too efficient,
+    // it makes implementing `FuseFile` much easier.
+
+    std::copy(std::begin(old_data), std::end(old_data), std::begin(data));
+    std::copy(
+        std::begin(new_data), std::end(new_data), std::begin(data) + offset
+    );
+
+    file->set_data_no_invalidate(data);
+
+    return size;
+}
+
+int FuseFs::fuse_truncate(
+    const char* path, off_t size, fuse_file_info* file_info
+) {
+    (void)file_info;
+
+    warn("truncate size={}", size);
+    info("FUSE request: truncate {}", path);
+
+    auto [fs, lock] = get_fs_locked();
+
+    auto entry = fs->root->get_entry(path);
+    auto* file = std::visit(
+        overloads{
+            [](FuseFile* file) { return file; },
+            [](FuseDir*) {
+                error("Failed to read: this is a dir");
+                return (FuseFile*)nullptr;
+            },
+            [](none) {
+                error("Faield to read: path does not exist");
+                return (FuseFile*)nullptr;
+            },
+        },
+        entry
+    );
+    if (file == nullptr) {
+        return -ENOENT;
+    }
+
+    auto old_data = file->read();
+    std::vector<std::byte> data(std::begin(old_data), std::end(old_data));
+    data.resize(size);
+
+    file->set_data_no_invalidate(data);
+
+    return 0;
 }

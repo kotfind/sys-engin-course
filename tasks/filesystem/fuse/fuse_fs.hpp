@@ -60,6 +60,18 @@ class FuseFs {
         fuse_file_info* info
     );
 
+    static int fuse_write(
+        const char* path,
+        const char* buf,
+        size_t size,
+        off_t offset,
+        fuse_file_info* file_info
+    );
+
+    static int fuse_truncate(
+        const char* path, off_t size, fuse_file_info* file_info
+    );
+
     mutable std::mutex mutex;
 
     fuse_args fuse_args;

@@ -57,6 +57,15 @@ std::vector<std::byte> Unit::copy_data() const {
     return this->data;
 }
 
+std::vector<std::byte> Unit::move_data() {
+    auto lock = this->wait_until_finished();
+
+    std::vector<std::byte> ans;
+    this->data.swap(ans);
+
+    return ans;
+}
+
 int Unit::get_status_code() const {
     auto lock = this->wait_until_finished();
 

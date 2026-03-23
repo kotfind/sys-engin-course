@@ -24,6 +24,8 @@ class Unit {
 
     std::vector<std::byte> copy_data() const;
 
+    std::vector<std::byte> move_data();
+
     int get_status_code() const;
 
     std::future<Unit*> run();

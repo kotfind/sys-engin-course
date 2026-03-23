@@ -8,7 +8,7 @@ class Program {
   public:
     ~Program();
 
-    static Program* compile(const std::string& source_code);
+    static Program* compile(std::string_view source_code);
 
     static Program* dummy();
 
@@ -22,7 +22,7 @@ class Program {
 
     Program(
         void* dynlib_handle,
-        const std::string& source_code,
+        std::string_view source_code,
         EntryPointFn entry_point_fn
     );
 

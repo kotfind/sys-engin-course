@@ -12,7 +12,7 @@
 
 Program::Program(
     void* dynlib_handle,
-    const std::string& source_code,
+    std::string_view source_code,
     EntryPointFn entry_point_fn
 )
     : dynlib_handle(dynlib_handle), source_code(source_code),
@@ -41,10 +41,10 @@ static bool create_temdir(std::string& tmp_dir) {
 }
 
 static bool write_code_file(
-    const std::string& code_file, const std::string& source_code
+    std::string_view code_file, std::string_view source_code
 ) {
 
-    std::ofstream code_fout{code_file};
+    std::ofstream code_fout{std::string{code_file}};
     if (!code_fout.is_open()) {
         error("failed to open a code file");
         return false;
@@ -57,7 +57,7 @@ static bool write_code_file(
 }
 
 static bool compile_dynlib(
-    const std::string& code_file, const std::string& dynlib_file
+    std::string_view code_file, std::string_view dynlib_file
 ) {
     info("Compiling a dynamic program");
 
@@ -99,7 +99,7 @@ static bool compile_dynlib(
     return true;
 }
 
-Program* Program::compile(const std::string& source_code) {
+Program* Program::compile(std::string_view source_code) {
     std::string tmp_dir;
     if (!create_temdir(tmp_dir)) {
         return nullptr;

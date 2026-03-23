@@ -3,6 +3,7 @@
 #include "log.hpp"
 #include "program.hpp"
 
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -27,7 +28,7 @@ bool Unit::get_is_running() const {
     return this->is_running;
 }
 
-bool Unit::set_program_code(const std::string& source_code) {
+bool Unit::set_program_code(std::string_view source_code) {
     auto lock = this->wait_until_finished();
 
     auto* new_program = Program::compile(source_code);
@@ -42,15 +43,15 @@ bool Unit::set_program_code(const std::string& source_code) {
     }
 }
 
-void Unit::set_data(const std::vector<std::uint8_t>& data) {
+void Unit::set_data(std::span<const std::byte> data) {
     auto lock = this->wait_until_finished();
 
     info("Loaded data for unit {}", this->id);
 
-    this->data = data;
+    this->data.assign(std::begin(data), std::end(data));
 }
 
-std::vector<std::uint8_t> Unit::copy_data() const {
+std::vector<std::byte> Unit::copy_data() const {
     auto lock = this->wait_until_finished();
 
     return this->data;
@@ -70,7 +71,13 @@ std::future<Unit*> Unit::run() {
     this->is_running = true;
 
     return std::async([this] {
-        auto status = this->program->run(this->data.size(), this->data.data());
+        static_assert(sizeof(std::byte) == sizeof(std::uint8_t));
+        static_assert(alignof(std::byte) == alignof(std::uint8_t));
+
+        auto prog_data_len = this->data.size();
+        auto* prog_data = (std::uint8_t*)this->data.data();
+
+        auto status = this->program->run(prog_data_len, prog_data);
 
         std::lock_guard lock(this->mutex);
 

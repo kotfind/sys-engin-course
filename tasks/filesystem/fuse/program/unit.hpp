@@ -3,9 +3,11 @@
 #include "program.hpp"
 
 #include <condition_variable>
-#include <cstdint>
+#include <cstddef>
 #include <future>
 #include <mutex>
+#include <span>
+#include <string_view>
 #include <vector>
 
 class Unit {
@@ -16,11 +18,11 @@ class Unit {
 
     bool get_is_running() const;
 
-    bool set_program_code(const std::string& source_code);
+    bool set_program_code(std::string_view source_code);
 
-    void set_data(const std::vector<std::uint8_t>& data);
+    void set_data(std::span<const std::byte> data);
 
-    std::vector<std::uint8_t> copy_data() const;
+    std::vector<std::byte> copy_data() const;
 
     int get_status_code() const;
 
@@ -37,7 +39,7 @@ class Unit {
 
     std::unique_ptr<Program> program;
 
-    std::vector<std::uint8_t> data;
+    std::vector<std::byte> data;
 
     int status_code;
 

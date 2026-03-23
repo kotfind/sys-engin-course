@@ -2,16 +2,26 @@
 # -------------------- General --------------------
 
 add_executable(fuse_cpu
-    ctrl_file.cpp
-    fuse_cpu.cpp
-    fuse_dir.cpp
-    fuse_file.cpp
-    fuse_fs.cpp
+    fuse_core/fuse_dir.cpp
+    fuse_core/fuse_file.cpp
+    fuse_core/fuse_fs.cpp
+
+    fuse_cpu/ctrl_file.cpp
+    fuse_cpu/fuse_cpu.cpp
+    fuse_cpu/unit_file.cpp
+
+    program/program.cpp
+    program/unit.cpp
+
     main.cpp
-    program.cpp
     signal_handler.cpp
-    unit.cpp
-    unit_file.cpp
+)
+
+target_include_directories(fuse_cpu PRIVATE
+    ./fuse_core
+    ./fuse_cpu
+    ./program
+    .
 )
 
 # -------------------- Fuse --------------------

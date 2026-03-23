@@ -6,7 +6,7 @@ class CtrlFile : public FuseFile {
   public:
     virtual ~CtrlFile();
 
-    void write(std::span<const std::byte> data) override;
+    void after_close() override;
 
     // TODO
 };

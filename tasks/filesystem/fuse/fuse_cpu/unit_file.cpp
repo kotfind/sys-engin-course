@@ -1,8 +1,10 @@
 #include "unit_file.hpp"
 
+#include "log.hpp"
+
 UnitFile::~UnitFile() {
 }
 
-void UnitFile::write(std::span<const std::byte> data) {
-    // TODO
+void UnitFile::after_close() {
+    warn("closed unit file");
 }

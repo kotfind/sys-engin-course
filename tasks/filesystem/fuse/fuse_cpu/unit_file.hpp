@@ -6,7 +6,7 @@ class UnitFile : public FuseFile {
   public:
     virtual ~UnitFile();
 
-    void write(std::span<const std::byte> data) override;
+    void after_close() override;
 
     // TODO
 };

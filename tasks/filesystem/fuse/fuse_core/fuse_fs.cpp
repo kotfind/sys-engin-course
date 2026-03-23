@@ -4,14 +4,12 @@
 #include "helpers.hpp"
 #include "log.hpp"
 
-#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
-#include <iterator>
 #include <memory>
 #include <mutex>
 #include <span>
@@ -20,7 +18,6 @@
 #include <thread>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #define FUSE_USE_VERSION 32
 #include <fuse.h>
@@ -33,6 +30,7 @@ struct fuse_operations FuseFs::fuse_operations = {
     .open = FuseFs::fuse_open,
     .read = FuseFs::fuse_read,
     .write = FuseFs::fuse_write,
+    .flush = FuseFs::fuse_flush,
     .readdir = FuseFs::fuse_readdir,
     .init = FuseFs::fuse_init,
 };
@@ -88,28 +86,9 @@ FuseFs* FuseFs::mount(
     return fs.release();
 }
 
-bool FuseFs::set_file_data(
-    std::string_view path, std::span<const std::byte> data
-) {
-    std::unique_lock lock{this->mutex};
-    return set_file_data_no_lock(path, data);
-}
-
-bool FuseFs::set_file_data_no_lock(
-    std::string_view path, std::span<const std::byte> data
-) {
-    info("Setting data for file {}", path);
-
-    auto* file = this->root->get_file(path);
-    if (file == nullptr) {
-        return false;
-    }
-
-    file->set_data_no_invalidate(data);
-    fuse_invalidate_path(this->fuse, path.data());
-
-    success("Updated data for file {}", path);
-    return true;
+bool FuseFs::invalidate_path(std::string_view path) {
+    auto status = fuse_invalidate_path(this->fuse, path.data());
+    return status == 0 || status == -ENOENT;
 }
 
 std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
@@ -140,11 +119,28 @@ void* FuseFs::fuse_init(fuse_conn_info* con, fuse_config* cfg) {
 }
 
 int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
-    (void)path;
+    info("FUSE flush: open {}", path);
 
     if (file_info->flags & O_TRUNC) {
         fuse_truncate(path, 0, file_info);
     }
+
+    return 0;
+}
+
+int FuseFs::fuse_flush(const char* path, struct fuse_file_info* file_info) {
+    (void)file_info;
+
+    info("FUSE flush: flush {}", path);
+
+    auto [fs, lock] = get_fs_locked();
+
+    auto* file = fs->root->get_file(path);
+    if (file == nullptr) {
+        return 0;
+    }
+
+    file->after_close();
 
     return 0;
 }
@@ -245,7 +241,6 @@ int FuseFs::fuse_write(
 ) {
     (void)file_info;
 
-    warn("write size={}, offset={}", size, offset);
     info("FUSE request: write {}", path);
 
     auto [fs, lock] = get_fs_locked();
@@ -255,20 +250,8 @@ int FuseFs::fuse_write(
         return -ENOENT;
     }
 
-    auto old_data = file->read();
-    auto new_data = std::as_bytes(std::span<const char>{buf, size});
-
-    std::vector<std::byte> data(std::max(offset + size, old_data.size()));
-
-    // NOTE: While this implementation with lots of copying isn't too efficient,
-    // it makes implementing `FuseFile` much easier.
-
-    std::copy(std::begin(old_data), std::end(old_data), std::begin(data));
-    std::copy(
-        std::begin(new_data), std::end(new_data), std::begin(data) + offset
-    );
-
-    file->set_data_no_invalidate(data);
+    auto span = std::as_bytes(std::span<const char>{buf, size});
+    file->write(span, offset);
 
     return size;
 }
@@ -278,7 +261,6 @@ int FuseFs::fuse_truncate(
 ) {
     (void)file_info;
 
-    warn("truncate size={}", size);
     info("FUSE request: truncate {}", path);
 
     auto [fs, lock] = get_fs_locked();
@@ -288,11 +270,7 @@ int FuseFs::fuse_truncate(
         return -ENOENT;
     }
 
-    auto old_data = file->read();
-    std::vector<std::byte> data(std::begin(old_data), std::end(old_data));
-    data.resize(size);
-
-    file->set_data_no_invalidate(data);
+    file->truncate(size);
 
     return 0;
 }

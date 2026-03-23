@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
-#include <span>
 #include <string_view>
 #include <utility>
 
@@ -21,11 +20,8 @@ class FuseFs {
         const std::filesystem::path& mount_path, std::unique_ptr<FuseDir> root
     );
 
-    bool set_file_data(std::string_view path, std::span<const std::byte> data);
-
-    bool set_file_data_no_lock(
-        std::string_view path, std::span<const std::byte> data
-    );
+    // NOTE: !!! Don't call from within a writing operation: will deadlock
+    bool invalidate_path(std::string_view path);
 
   private:
     FuseFs(std::unique_ptr<FuseDir> root);
@@ -38,6 +34,8 @@ class FuseFs {
     static void* fuse_init(fuse_conn_info* con, fuse_config* cfg);
 
     static int fuse_open(const char* path, fuse_file_info* file_info);
+
+    static int fuse_flush(const char* path, struct fuse_file_info* file_info);
 
     static int fuse_getattr(
         const char* path, struct stat* stat, fuse_file_info* info

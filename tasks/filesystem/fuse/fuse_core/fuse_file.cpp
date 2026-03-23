@@ -1,25 +1,33 @@
 #include "fuse_file.hpp"
 
+#include <algorithm>
 #include <iterator>
-
-// -------------------- Fuse File --------------------
 
 FuseFile::~FuseFile() {
 }
 
 std::span<const std::byte> FuseFile::read() const {
-    return std::span(this->data);
+    return this->get_read_data();
 }
 
-void FuseFile::set_data_no_invalidate(std::span<const std::byte> data) {
-    this->data = std::vector(std::begin(data), std::end(data));
+void FuseFile::write(std::span<const std::byte> data, std::size_t offset) {
+    if (offset + data.size() > this->write_data.size()) {
+        this->write_data.resize(offset + data.size());
+    }
+
+    std::copy(
+        std::begin(data), std::end(data), std::begin(this->write_data) + offset
+    );
 }
 
-// -------------------- Simple Fuse File --------------------
-
-void SimpleFuseFile::write(std::span<const std::byte> data) {
-    this->set_data_no_invalidate(data);
+void FuseFile::truncate(std::size_t size) {
+    this->write_data.resize(size);
 }
 
-SimpleFuseFile::~SimpleFuseFile() {
+std::span<const std::byte> FuseFile::get_read_data() const {
+    return this->read_data;
+}
+
+std::span<const std::byte> FuseFile::get_write_data() const {
+    return this->write_data;
 }

@@ -10,8 +10,8 @@ add_executable(fuse_cpu
     fuse_cpu/fuse_cpu.cpp
     fuse_cpu/unit_file.cpp
 
-    program/program.cpp
-    program/unit.cpp
+    cpu/program.cpp
+    cpu/unit.cpp
 
     main.cpp
     signal_handler.cpp
@@ -20,7 +20,7 @@ add_executable(fuse_cpu
 target_include_directories(fuse_cpu PRIVATE
     ./fuse_core
     ./fuse_cpu
-    ./program
+    ./cpu
     .
 )
 

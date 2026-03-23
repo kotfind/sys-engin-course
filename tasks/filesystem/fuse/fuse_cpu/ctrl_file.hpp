@@ -7,6 +7,4 @@ class CtrlFile : public FuseFile {
     virtual ~CtrlFile();
 
     void after_close() override;
-
-    // TODO
 };

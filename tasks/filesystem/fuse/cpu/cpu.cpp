@@ -1,6 +1,8 @@
 #include "cpu.hpp"
+#include "unit.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -39,12 +41,20 @@ int Cpu::get_status_code(std::size_t unit_id) {
     return this->units.at(unit_id)->get_status_code();
 }
 
-std::future<void> Cpu::run(std::size_t unit_id) {
+std::future<std::size_t> Cpu::run(
+    std::size_t unit_id, std::function<void(std::size_t)> on_start
+) {
     std::lock_guard lock(this->mutex);
 
     auto* unit = this->units.at(unit_id).get();
 
-    return std::async([unit]() { unit->run(); });
+    auto on_start_wrapped = [on_start](Unit* unit) {
+        on_start(unit->get_id());
+    };
+
+    return std::async([unit, on_start_wrapped]() {
+        return unit->run(on_start_wrapped).get()->get_id();
+    });
 }
 
 bool Cpu::get_is_running(std::size_t unit_id) const {

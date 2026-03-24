@@ -3,6 +3,7 @@
 #include "unit.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -24,7 +25,10 @@ class Cpu {
 
     int get_status_code(std::size_t unit_id);
 
-    std::future<void> run(std::size_t unit_id);
+    std::future<std::size_t> run(
+        std::size_t unit_id,
+        std::function<void(std::size_t)> on_start = [](std::size_t) {}
+    );
 
     bool get_is_running(std::size_t unit_id) const;
 

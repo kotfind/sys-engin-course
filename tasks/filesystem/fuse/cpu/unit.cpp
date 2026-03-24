@@ -3,9 +3,12 @@
 #include "log.hpp"
 #include "program.hpp"
 
+#include <functional>
+#include <future>
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 Unit::Unit(std::size_t unit_id)
@@ -73,12 +76,14 @@ int Unit::get_status_code() const {
     return this->status_code;
 }
 
-std::future<Unit*> Unit::run() {
+std::future<Unit*> Unit::run(std::function<void(Unit*)> on_start) {
     auto lock = this->wait_until_finished();
 
     info("Running program on unit {}", this->id);
 
     this->is_running = true;
+
+    std::thread([this, on_start]() { on_start(this); }).detach();
 
     return std::async([this] {
         auto status = this->program->run(this->data);

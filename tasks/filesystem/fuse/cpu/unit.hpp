@@ -4,6 +4,7 @@
 
 #include <condition_variable>
 #include <cstddef>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <span>
@@ -28,7 +29,7 @@ class Unit {
 
     int get_status_code() const;
 
-    std::future<Unit*> run();
+    std::future<Unit*> run(std::function<void(Unit*)> on_start = [](Unit*) {});
 
   private:
     std::unique_lock<std::mutex> wait_until_finished() const;

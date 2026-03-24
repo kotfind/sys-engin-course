@@ -134,7 +134,7 @@ void* FuseFs::fuse_init(fuse_conn_info* con, fuse_config* cfg) {
 }
 
 int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
-    trace("FUSE flush: open {}", path);
+    trace("FUSE request: open {}", path);
 
     if (file_info->flags & O_TRUNC) {
         fuse_truncate(path, 0, file_info);
@@ -146,7 +146,7 @@ int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
 int FuseFs::fuse_flush(const char* path, struct fuse_file_info* file_info) {
     (void)file_info;
 
-    trace("FUSE flush: flush {}", path);
+    trace("FUSE request: flush {}", path);
 
     auto [fs, lock] = get_fs_locked();
 

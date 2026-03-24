@@ -3,6 +3,7 @@
 #include <chrono>
 #include <format>
 #include <iostream>
+#include <mutex>
 
 #define ANSI_BOLD "\033[1m"
 #define ANSI_BOLD_RED "\033[1;31m"
@@ -25,6 +26,9 @@ void __log(
     auto secs = std::chrono::duration<double>(now - start_time).count();
 
     auto msg = std::format(std::move(fmt), std::forward<Args>(args)...);
+
+    static std::mutex mutex;
+    std::lock_guard lock(mutex);
     std::cerr
         << std::format(
                "{}[{}] at {:11.5f}s: {}{}", color, level, secs, msg, ANSI_CLEAR

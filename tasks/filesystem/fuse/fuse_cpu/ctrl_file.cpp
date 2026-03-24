@@ -96,12 +96,10 @@ void CtrlFile::after_close(FuseFs* fs, std::string_view path) {
 
         auto path_owned = std::string(path);
         std::thread([this, unit_id, fs, path_owned]() {
-            auto run_fut = this->cpu->run(unit_id);
-
-            std::this_thread::sleep_for(100ms); // wait until it starts
-            this->recalc_read_data(fs, path_owned);
-
-            run_fut.wait();
+            auto on_start = [this, fs, path_owned](std::size_t) {
+                this->recalc_read_data(fs, path_owned);
+            };
+            this->cpu->run(unit_id, on_start).wait();
 
             auto file_name = UnitDataFile::get_file_name_static(unit_id);
             auto status = fs->set_file_read_data(
@@ -140,7 +138,7 @@ void CtrlFile::recalc_read_data(FuseFs* fs, std::string_view path) {
     auto ss_span =
         std::span<std::byte>((std::byte*)ss_str.data(), ss_str.size());
 
-    info("Updated {} data: `{}`", path, ss_str);
+    trace("Updated {} data: `{}`", path, ss_str);
     fs->set_file_read_data(path, ss_span);
 }
 

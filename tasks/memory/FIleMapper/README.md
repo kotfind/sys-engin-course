@@ -16,4 +16,4 @@ $ sort_data.exe datafile.bin 100
 
 1. Теоретическую часть, оформленная в файле README в формате markwodn.
 
-2. Код. 
+2. Код.

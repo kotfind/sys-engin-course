@@ -1,2 +1,6 @@
 .DS_Store
+.direnv
 build/*
+target
+.ccls-cache
+.cache

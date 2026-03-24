@@ -1,8 +1,12 @@
+/// @file
+///
+/// @brief Some general helper classes and function.
+
 #pragma once
 
 #include <variant>
 
-/// @brief A helper for @ref std::visit.
+/// @brief A helper for `std::visit`.
 template <class... Ts>
 struct overloads : Ts... {
     using Ts::operator()...;
@@ -10,5 +14,5 @@ struct overloads : Ts... {
 
 /// @brief Indicates, that no value were provided.
 ///
-/// Is usually used as one of @ref std::variant options
+/// Is usually used as one of `std::variant` options
 using none = std::monostate;

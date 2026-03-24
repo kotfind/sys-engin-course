@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A "virtual cpu".
+
 #pragma once
 
 #include "unit.hpp"
@@ -34,6 +38,7 @@ class Cpu {
     int get_status_code(std::size_t unit_id);
 
     /// @brief Runs a unit.
+    /// @param unit_id A unit's id.
     /// @param on_start
     ///     A function that will be called in a separate thread on unit's start.
     ///     This is required as the unit may not start immediately if unit's

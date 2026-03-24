@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A fuse directory.
+
 #pragma once
 
 #include "fuse_file.hpp"
@@ -20,7 +24,7 @@ struct FuseDirEntryOwned
     FuseDirEntryRef to_ref() const;
 };
 
-/// @brief A directory.
+/// @brief A fuse directory.
 class FuseDir {
   public:
     /// @brief Tries to get a directory.

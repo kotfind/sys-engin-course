@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A fuse filesystem.
+
 #pragma once
 
 #include "fuse_dir.hpp"
@@ -13,7 +17,7 @@
 #define FUSE_USE_VERSION 32
 #include <fuse.h>
 
-/// @brief A wrapper for fuse.
+/// @brief A fuse filesystem.
 ///
 /// To integrate with fuse api, on mounting this class sets it's pointer
 /// as a private_data in a fuse context, which later allows to access it from

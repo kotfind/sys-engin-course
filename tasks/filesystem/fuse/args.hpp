@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief Parsing command line arguments.
+
 #pragma once
 
 #include <cstddef>

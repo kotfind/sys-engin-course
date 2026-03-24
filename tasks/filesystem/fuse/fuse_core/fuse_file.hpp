@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A fuse file.
+
 #pragma once
 
 #include <cstddef>
@@ -7,7 +11,7 @@
 
 class FuseFs;
 
-/// @brief A file.
+/// @brief A fuse file.
 ///
 /// It holds two buffers: `read_data` and `write_data`.
 /// Fuse uses `read_data` for read operations and `write_data` for write and

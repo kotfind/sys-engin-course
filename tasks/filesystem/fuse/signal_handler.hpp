@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief Signal handler installation.
+
 #pragma once
 
 #include <csignal>
@@ -8,7 +12,7 @@
 /// @param callback
 ///     A function to be called, when the signal is received.
 ///     Receives a signal as an argument.
-/// @param signal
+/// @param signals
 ///     A list of signals, for which the handler should be installed.
 bool install_signal_handler(
     std::function<void(int /*signal*/)> callback,

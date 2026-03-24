@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief Logging functions.
+
 #pragma once
 
 #include <chrono>

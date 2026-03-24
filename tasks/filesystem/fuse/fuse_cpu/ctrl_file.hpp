@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief An implementation of a @ref FuseFs for `/ctrl`.
+
 #pragma once
 
 #include "cpu.hpp"

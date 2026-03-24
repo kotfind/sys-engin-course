@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A cpu unit.
+
 #pragma once
 
 #include "program.hpp"
@@ -11,7 +15,7 @@
 #include <string_view>
 #include <vector>
 
-/// @brief A cpu's unit.
+/// @brief A cpu unit.
 ///
 /// Stores a `data` and a `program`.
 /// Can execute a `program` on a `data`.

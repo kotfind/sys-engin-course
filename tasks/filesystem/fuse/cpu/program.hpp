@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A dynamic program.
+
 #pragma once
 
 #include <cstddef>

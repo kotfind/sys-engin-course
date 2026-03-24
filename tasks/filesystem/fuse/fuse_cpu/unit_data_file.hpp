@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief An implementation of a @ref FuseFs for `/unitN/lram`.
+
 #pragma once
 
 #include "cpu.hpp"
@@ -7,7 +11,7 @@
 #include <string>
 #include <string_view>
 
-/// @brief An implementation of a @ref FuseFs for `/unit{unit_id}/lram`.
+/// @brief An implementation of a @ref FuseFs for `/unitN/lram`.
 class UnitDataFile : public FuseFile {
   public:
     UnitDataFile(Cpu* cpu, std::size_t unit_id);
@@ -17,12 +21,12 @@ class UnitDataFile : public FuseFile {
     /// @brief The same as @ref UnitDataFile::get_file_name, but static.
     static std::string get_file_name_static(std::size_t unit_id);
 
-    /// @brief Implements @ref FuseFs::after_close.
+    /// @brief Implements @ref FuseFile::after_close.
     void after_close(FuseFs* fs, std::string_view path) override;
 
     /// @brief Gets this file's expected name.
     ///
-    /// That is `/unit{unit_id}/lram`.
+    /// That is `/unitN/lram`.
     std::string get_file_name() const;
 
   private:

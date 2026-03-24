@@ -1,0 +1,3 @@
+/// @dir .
+///
+/// @brief Provides C++ bindings for some of libfuse operations.

@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief The main function of the application.
+
 #pragma once
 
 struct Args;

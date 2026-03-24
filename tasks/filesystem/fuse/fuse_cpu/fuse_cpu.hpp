@@ -1,3 +1,7 @@
+/// @file
+///
+/// @brief A bridge between a @ref Cpu and a @ref FuseFs.
+
 #pragma once
 
 #include "cpu.hpp"

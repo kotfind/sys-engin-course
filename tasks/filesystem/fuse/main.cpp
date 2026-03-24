@@ -1,3 +1,4 @@
+#include "args.hpp"
 #include "fuse_cpu.hpp"
 #include "log.hpp"
 #include "signal_handler.hpp"
@@ -8,7 +9,7 @@
 
 using namespace std::chrono_literals;
 
-int main() {
+int run(const Args& args) {
     bool is_running = true;
     std::condition_variable is_running_cv;
 
@@ -20,9 +21,22 @@ int main() {
         return 1;
     }
 
-    auto cpu = std::unique_ptr<FuseCpu>(FuseCpu::create("./mnt", 5));
+    auto cpu = std::unique_ptr<FuseCpu>(
+        FuseCpu::create(args.mount_point, args.unit_count)
+    );
+    if (cpu == nullptr) {
+        return 1;
+    }
 
     std::mutex mutex;
     std::unique_lock lock{mutex};
     is_running_cv.wait(lock, [&]() { return !is_running; });
+
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    auto args = parse_args(argc, argv);
+
+    return run(args);
 }

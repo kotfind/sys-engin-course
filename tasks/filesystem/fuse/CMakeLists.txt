@@ -15,6 +15,7 @@ add_executable(fuse_cpu
     fuse_cpu/unit_data_file.cpp
     fuse_cpu/unit_program_file.cpp
 
+    args.cpp
     main.cpp
     signal_handler.cpp
 )

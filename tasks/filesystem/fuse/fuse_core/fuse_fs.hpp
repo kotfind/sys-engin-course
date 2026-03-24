@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <string_view>
 #include <utility>
 
@@ -22,6 +23,11 @@ class FuseFs {
 
     // NOTE: !!! Don't call from within a writing operation: will deadlock
     bool invalidate_path(std::string_view path);
+
+    // NOTE: !!! Don't call from within a writing operation: will deadlock
+    bool set_file_read_data(
+        std::string_view path, std::span<const std::byte> data
+    );
 
   private:
     FuseFs(std::unique_ptr<FuseDir> root);

@@ -46,3 +46,9 @@ std::future<void> Cpu::run(std::size_t unit_id) {
 
     return std::async([unit]() { unit->run(); });
 }
+
+bool Cpu::get_is_running(std::size_t unit_id) const {
+    std::lock_guard lock(this->mutex);
+
+    return this->units.at(unit_id)->get_is_running();
+}

@@ -26,6 +26,8 @@ class Cpu {
 
     std::future<void> run(std::size_t unit_id);
 
+    bool get_is_running(std::size_t unit_id) const;
+
   private:
     mutable std::mutex mutex;
 

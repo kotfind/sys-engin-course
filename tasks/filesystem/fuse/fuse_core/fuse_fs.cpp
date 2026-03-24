@@ -91,6 +91,21 @@ bool FuseFs::invalidate_path(std::string_view path) {
     return status == 0 || status == -ENOENT;
 }
 
+bool FuseFs::set_file_read_data(
+    std::string_view path, std::span<const std::byte> data
+) {
+    std::unique_lock lock(this->mutex);
+
+    auto* file = this->root->get_file(path);
+    if (file == nullptr) {
+        return false;
+    }
+
+    file->set_read_data(data, this, path);
+
+    return true;
+}
+
 std::pair<FuseFs*, std::unique_lock<std::mutex>> FuseFs::get_fs_locked() {
     auto* ctx = fuse_get_context();
     assert(ctx != nullptr);

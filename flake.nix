@@ -26,6 +26,7 @@
           mold
 
           gdb
+          libllvm
 
           fuse3
           fuse3.dev

@@ -2,6 +2,7 @@
 #include "log.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
@@ -9,6 +10,12 @@
 #include <fstream>
 #include <string>
 #include <string_view>
+
+const std::string_view Program::clang_compile_extra_flags =
+    "-std=c++20 -fuse-ld=mold -O2 -g0";
+
+const std::string_view Program::entry_point_fn_mangled_name =
+    "_Z10entrypointjPh";
 
 Program::Program(
     void* dynlib_handle,
@@ -25,8 +32,21 @@ Program::~Program() {
     }
 }
 
-int Program::run(std::uint32_t size, std::uint8_t* data) const {
-    return this->entry_point_fn(size, data);
+int Program::run(std::span<std::byte> data) const {
+    if (this->dynlib_handle == nullptr) {
+        warn(
+            "Trying to run a dummy program. "
+            "Did you forget to set it's source code?"
+        );
+    }
+
+    static_assert(sizeof(std::byte) == sizeof(std::uint8_t));
+    static_assert(alignof(std::byte) == alignof(std::uint8_t));
+
+    auto size = data.size();
+    auto raw_data = (std::uint8_t*)data.data();
+
+    return this->entry_point_fn(size, raw_data);
 }
 
 static bool create_temdir(std::string& tmp_dir) {
@@ -57,14 +77,17 @@ static bool write_code_file(
 }
 
 static bool compile_dynlib(
-    std::string_view code_file, std::string_view dynlib_file
+    std::string_view code_file,
+    std::string_view dynlib_file,
+    std::string_view clang_extra_flags
 ) {
     info("Compiling a dynamic program");
 
     auto cmd = std::format(
-        "clang++ -shared -fPIC {} -fuse-ld=mold -O2 -g0 -o {} 2>&1",
+        "clang++ -shared -fPIC {} -o {} {} 2>&1",
         code_file,
-        dynlib_file
+        dynlib_file,
+        clang_extra_flags
     );
     info("Running: {}", cmd);
 
@@ -112,11 +135,11 @@ Program* Program::compile(std::string_view source_code) {
         return nullptr;
     }
 
-    if (!compile_dynlib(code_file, dynlib_file)) {
+    if (!compile_dynlib(code_file, dynlib_file, clang_compile_extra_flags)) {
         return nullptr;
     }
 
-    void* dynlib_handle = dlopen(dynlib_file.c_str(), RTLD_LAZY);
+    void* dynlib_handle = dlopen(dynlib_file.c_str(), RTLD_NOW);
     if (dynlib_handle == nullptr) {
         error("failed to load dynlib file: {}", dlerror());
         return nullptr;

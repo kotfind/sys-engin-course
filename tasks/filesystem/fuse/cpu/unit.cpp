@@ -81,13 +81,7 @@ std::future<Unit*> Unit::run() {
     this->is_running = true;
 
     return std::async([this] {
-        static_assert(sizeof(std::byte) == sizeof(std::uint8_t));
-        static_assert(alignof(std::byte) == alignof(std::uint8_t));
-
-        auto prog_data_len = this->data.size();
-        auto* prog_data = (std::uint8_t*)this->data.data();
-
-        auto status = this->program->run(prog_data_len, prog_data);
+        auto status = this->program->run(this->data);
 
         std::lock_guard lock(this->mutex);
 

@@ -19,13 +19,14 @@ class FuseFile {
 
     virtual void after_close(FuseFs* fs, std::string_view path) = 0;
 
-  protected:
+    // NOTE: !!! Don't call from within a writing operation: will deadlock
     void set_read_data(
         std::span<const std::byte> data, FuseFs* fs, std::string_view pat
     );
 
     void set_read_data_no_invalidate(std::span<const std::byte> data);
 
+  protected:
     std::span<const std::byte> get_read_data() const;
 
     std::span<const std::byte> get_write_data() const;

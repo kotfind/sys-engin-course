@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -12,13 +14,14 @@ class Program {
 
     static Program* dummy();
 
-    int run(std::uint32_t size, std::uint8_t* data) const;
+    int run(std::span<std::byte>) const;
 
   private:
     using EntryPointFn = int (*)(std::uint32_t, std::uint8_t*);
 
-    static constexpr std::string_view entry_point_fn_mangled_name =
-        "_Z10entrypointjPh";
+    static const std::string_view clang_compile_extra_flags;
+
+    static const std::string_view entry_point_fn_mangled_name;
 
     Program(
         void* dynlib_handle,

@@ -19,9 +19,13 @@ class FuseFile {
     virtual void after_close() = 0;
 
   protected:
+    void set_read_data(std::span<const std::byte> data);
+
     std::span<const std::byte> get_read_data() const;
 
     std::span<const std::byte> get_write_data() const;
+
+    std::vector<std::byte> move_write_data();
 
   private:
     std::vector<std::byte> read_data;

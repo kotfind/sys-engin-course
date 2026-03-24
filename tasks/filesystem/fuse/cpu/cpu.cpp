@@ -11,6 +11,16 @@ Cpu::Cpu(std::size_t unit_count) {
     }
 }
 
+std::size_t Cpu::get_unit_count() const {
+    return this->units.size();
+}
+
+void Cpu::set_program_code(std::size_t unit_id, std::string_view source_code) {
+    std::lock_guard lock(this->mutex);
+
+    this->units.at(unit_id)->set_program_code(source_code);
+}
+
 void Cpu::set_data(std::size_t unit_id, std::span<const std::byte> data) {
     std::lock_guard lock(this->mutex);
 

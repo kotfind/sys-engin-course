@@ -1,83 +1,60 @@
 #include "fuse_cpu.hpp"
+#include "cpu.hpp"
 #include "ctrl_file.hpp"
 #include "fuse_dir.hpp"
 #include "fuse_fs.hpp"
-#include "unit.hpp"
-#include "unit_file.hpp"
+#include "unit_data_file.hpp"
+#include "unit_program_file.hpp"
 
 #include <cstddef>
 #include <format>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <vector>
-
-static std::string_view get_ctrl_path() {
-    return "ctrl";
-}
+#include <utility>
 
 static std::string get_unit_root_path(std::size_t unit_id) {
     return std::format("/unit{}", unit_id);
 }
 
-static std::string get_unit_data_path(std::size_t unit_id) {
-    return std::format("/unit{}/lram", unit_id);
+FuseCpu::FuseCpu(std::unique_ptr<FuseFs> fs, std::unique_ptr<Cpu> cpu)
+    : fs(std::move(fs)), cpu(std::move(cpu)) {
 }
 
-static std::string get_unit_program_path(std::size_t unit_id) {
-    return std::format("/unit{}/pram", unit_id);
-}
+static FuseDir* create_root_dir(Cpu* cpu) {
+    auto root = std::make_unique<FuseDir>();
 
-FuseCpu::FuseCpu(
-    std::unique_ptr<FuseFs> fs, std::vector<std::unique_ptr<Unit>> units
-)
-    : fs(std::move(fs)), units(std::move(units)) {
-}
-
-static FuseDir* create_root_dir(std::size_t unit_count) {
-    auto root_dir = std::make_unique<FuseDir>();
-
-    for (std::size_t unit_id = 0; unit_id < unit_count; ++unit_id) {
-        if (!root_dir->add_dir(
+    for (std::size_t unit_id = 0; unit_id < cpu->get_unit_count(); ++unit_id) {
+        if (!root->add_dir(
                 get_unit_root_path(unit_id), std::make_unique<FuseDir>()
             )) {
             return nullptr;
         }
 
-        if (!root_dir->add_file(
-                get_unit_data_path(unit_id), std::make_unique<UnitFile>()
-            )) {
+        auto prog_file = std::make_unique<UnitProgramFile>(cpu, unit_id);
+        if (!root->add_file(prog_file->get_file_name(), std::move(prog_file))) {
             return nullptr;
         }
 
-        if (!root_dir->add_file(
-                get_unit_program_path(unit_id), std::make_unique<UnitFile>()
-            )) {
+        auto data_file = std::make_unique<UnitDataFile>(cpu, unit_id);
+        if (!root->add_file(data_file->get_file_name(), std::move(data_file))) {
             return nullptr;
         }
     }
 
-    if (!root_dir->add_file(get_ctrl_path(), std::make_unique<CtrlFile>())) {
+    auto ctrl_file = std::make_unique<CtrlFile>(cpu);
+    if (!root->add_file(ctrl_file->get_file_name(), std::move(ctrl_file))) {
         return nullptr;
     }
 
-    return root_dir.release();
-}
-
-static std::vector<std::unique_ptr<Unit>> create_units(std::size_t unit_count) {
-    std::vector<std::unique_ptr<Unit>> units;
-    for (std::size_t unit_id = 0; unit_id < unit_count; ++unit_id) {
-        units.push_back(std::make_unique<Unit>(unit_id));
-    }
-    return units;
+    return root.release();
 }
 
 FuseCpu* FuseCpu::create(
     const std::filesystem::path& mount_path, std::size_t unit_count
 ) {
-    auto units = create_units(unit_count);
+    auto cpu = std::make_unique<Cpu>(unit_count);
 
-    auto root = std::unique_ptr<FuseDir>(create_root_dir(unit_count));
+    auto root = std::unique_ptr<FuseDir>(create_root_dir(cpu.get()));
     if (root == nullptr) {
         return nullptr;
     }
@@ -88,5 +65,5 @@ FuseCpu* FuseCpu::create(
         return nullptr;
     }
 
-    return new FuseCpu(std::move(fs), std::move(units));
+    return new FuseCpu(std::move(fs), std::move(cpu));
 }

@@ -1,12 +1,11 @@
 #pragma once
 
+#include "cpu.hpp"
 #include "fuse_fs.hpp"
-#include "unit.hpp"
 
 #include <cstddef>
 #include <filesystem>
 #include <memory>
-#include <vector>
 
 class FuseCpu {
   public:
@@ -15,10 +14,9 @@ class FuseCpu {
     );
 
   private:
-    FuseCpu(
-        std::unique_ptr<FuseFs> fs, std::vector<std::unique_ptr<Unit>> units
-    );
+    FuseCpu(std::unique_ptr<FuseFs> fs, std::unique_ptr<Cpu> cpu);
 
     std::unique_ptr<FuseFs> fs;
-    std::vector<std::unique_ptr<Unit>> units;
+
+    std::unique_ptr<Cpu> cpu;
 };

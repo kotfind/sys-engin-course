@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <vector>
 
 FuseFile::~FuseFile() {
 }
@@ -24,8 +25,18 @@ void FuseFile::truncate(std::size_t size) {
     this->write_data.resize(size);
 }
 
+void FuseFile::set_read_data(std::span<const std::byte> data) {
+    this->read_data.assign(std::begin(data), std::end(data));
+}
+
 std::span<const std::byte> FuseFile::get_read_data() const {
     return this->read_data;
+}
+
+std::vector<std::byte> FuseFile::move_write_data() {
+    std::vector<std::byte> ans;
+    ans.swap(this->write_data);
+    return ans;
 }
 
 std::span<const std::byte> FuseFile::get_write_data() const {

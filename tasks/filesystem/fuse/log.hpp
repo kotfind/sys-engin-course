@@ -15,6 +15,9 @@ using std::chrono::steady_clock;
 
 static const auto start_time = steady_clock::now();
 
+/// @brief A generic logging function.
+///
+/// **Don't use this.** This function is a part of implementation.
 template <typename LogLevel, typename AnsiColor, typename... Args>
 void __log(
     LogLevel level,
@@ -36,32 +39,50 @@ void __log(
         << std::endl;
 }
 
+/// @brief Write a log message with **error** log level.
+/// @param fmt A format string.
+/// @param args Arguments for a format string.
 template <typename... Args>
 void error(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("ERR", ANSI_BOLD_RED, std::move(fmt), std::forward<Args>(args)...);
 }
 
+/// @brief Write a log message with **error** log level and exits with status=1.
+/// @param fmt A format string.
+/// @param args Arguments for a format string.
 template <typename... Args>
 void die(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("ERR", ANSI_BOLD_RED, std::move(fmt), std::forward<Args>(args)...);
     exit(1);
 }
 
+/// @brief Write a log message with **warn** log level.
+/// @param fmt A format string.
+/// @param args Arguments for a format string.
 template <typename... Args>
 void warn(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("WRN", ANSI_BOLD_YELLOW, std::move(fmt), std::forward<Args>(args)...);
 }
 
+/// @brief Write a log message with **info** log level.
+/// @param fmt A format string.
+/// @param args Arguments for a format string.
 template <typename... Args>
 void info(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("INF", ANSI_BOLD, std::move(fmt), std::forward<Args>(args)...);
 }
 
+/// @brief Write a log message with **info** log level, but green.
+/// @param fmt A format string.
+/// @param args Arguments for a format string.
 template <typename... Args>
 void success(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("INF", ANSI_BOLD_GREEN, std::move(fmt), std::forward<Args>(args)...);
 }
 
+/// @brief Write a log message with **trace** log level.
+/// @param fmt A format string.
+/// @param args Arguments for a format string.
 template <typename... Args>
 void trace(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("TRC", "", std::move(fmt), std::forward<Args>(args)...);

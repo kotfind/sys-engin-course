@@ -44,8 +44,15 @@ target_compile_definitions(fuse_cpu PRIVATE
 
 find_package(Doxygen REQUIRED)
 
+set(DOXYGEN_EXCLUDE "integration" "README.md")
+set(DOXYGEN_PROJECT_NAME "Fuse Cpu")
+set(DOXYGEN_PROJECT_BRIEF "Create a \"virtual cpu\" with FUSE filesystem interface.")
+set(DOXYGEN_PROJECT_NUMBER "v0.1.0")
+
+set(DOXYGEN_EXTRACT_ALL true)
+set(DOXYGEN_EXCLUDE_PATTERNS "*.cpp")
+
 set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/docs/fuse_cpu")
-set(DOXYGEN_EXCLUDE integration)
 
 doxygen_add_docs(fuse_cpu_docs
     ${CMAKE_CURRENT_SOURCE_DIR}

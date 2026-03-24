@@ -42,7 +42,10 @@ target_compile_definitions(fuse_cpu PRIVATE
 # -------------------- Doxygen --------------------
 
 find_package(Doxygen REQUIRED)
+
 set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/docs/fuse_cpu")
+set(DOXYGEN_EXCLUDE integration)
+
 doxygen_add_docs(fuse_cpu_docs
     ${CMAKE_CURRENT_SOURCE_DIR}
     ALL

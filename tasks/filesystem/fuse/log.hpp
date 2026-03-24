@@ -57,3 +57,8 @@ template <typename... Args>
 void success(std::format_string<Args...>&& fmt, Args&&... args) {
     __log("INF", ANSI_BOLD_GREEN, std::move(fmt), std::forward<Args>(args)...);
 }
+
+template <typename... Args>
+void trace(std::format_string<Args...>&& fmt, Args&&... args) {
+    __log("TRC", "", std::move(fmt), std::forward<Args>(args)...);
+}

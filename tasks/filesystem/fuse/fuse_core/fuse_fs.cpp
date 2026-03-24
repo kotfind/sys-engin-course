@@ -134,7 +134,7 @@ void* FuseFs::fuse_init(fuse_conn_info* con, fuse_config* cfg) {
 }
 
 int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
-    info("FUSE flush: open {}", path);
+    trace("FUSE flush: open {}", path);
 
     if (file_info->flags & O_TRUNC) {
         fuse_truncate(path, 0, file_info);
@@ -146,7 +146,7 @@ int FuseFs::fuse_open(const char* path, fuse_file_info* file_info) {
 int FuseFs::fuse_flush(const char* path, struct fuse_file_info* file_info) {
     (void)file_info;
 
-    info("FUSE flush: flush {}", path);
+    trace("FUSE flush: flush {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
@@ -166,7 +166,7 @@ int FuseFs::fuse_getattr(
 ) {
     (void)file_info;
 
-    info("FUSE request: getattr {}", path);
+    trace("FUSE request: getattr {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
@@ -204,7 +204,7 @@ int FuseFs::fuse_readdir(
     (void)file_info;
     (void)flags;
 
-    info("FUSE request: readdir {}", path);
+    trace("FUSE request: readdir {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
@@ -230,7 +230,7 @@ int FuseFs::fuse_read(
 ) {
     (void)file_info;
 
-    info("FUSE request: read {}", path);
+    trace("FUSE request: read {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
@@ -257,7 +257,7 @@ int FuseFs::fuse_write(
 ) {
     (void)file_info;
 
-    info("FUSE request: write {}", path);
+    trace("FUSE request: write {}", path);
 
     auto [fs, lock] = get_fs_locked();
 
@@ -277,7 +277,7 @@ int FuseFs::fuse_truncate(
 ) {
     (void)file_info;
 
-    info("FUSE request: truncate {}", path);
+    trace("FUSE request: truncate {}", path);
 
     auto [fs, lock] = get_fs_locked();
 

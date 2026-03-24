@@ -11,7 +11,10 @@
 #include <sstream>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <vector>
+
+using namespace std::chrono_literals;
 
 CtrlFile::CtrlFile(Cpu* cpu) : cpu(cpu) {
 }
@@ -72,8 +75,6 @@ void print_units_to_run(std::span<std::size_t> unit_ids) {
 }
 
 void CtrlFile::after_close(FuseFs* fs, std::string_view path) {
-    (void)path;
-
     auto data = this->move_write_data();
     if (data.empty()) {
         return;
@@ -89,21 +90,58 @@ void CtrlFile::after_close(FuseFs* fs, std::string_view path) {
 
     for (auto unit_id : units_to_run) {
         if (this->cpu->get_is_running(unit_id)) {
-            warn("Unit {} is already running", unit_id);
+            warn("Cannot start unit {}: it's already running", unit_id);
             continue;
         }
 
-        auto* cpu = this->cpu;
-        std::thread([cpu, unit_id, fs]() {
-            cpu->run(unit_id).wait();
+        auto path_owned = std::string(path);
+        std::thread([this, unit_id, fs, path_owned]() {
+            auto run_fut = this->cpu->run(unit_id);
+
+            std::this_thread::sleep_for(100ms); // wait until it starts
+            this->recalc_read_data(fs, path_owned);
+
+            run_fut.wait();
+
             auto file_name = UnitDataFile::get_file_name_static(unit_id);
-            auto status =
-                fs->set_file_read_data(file_name, cpu->move_data(unit_id));
+            auto status = fs->set_file_read_data(
+                file_name, this->cpu->move_data(unit_id)
+            );
+
             if (!status) {
-                error("failed to set data for {}", file_name);
+                error("Failed to set data for {}", file_name);
             }
+
+            this->recalc_read_data(fs, path_owned);
         }).detach();
     }
+}
+
+void CtrlFile::recalc_read_data(FuseFs* fs, std::string_view path) {
+    std::size_t unit_count = this->cpu->get_unit_count();
+
+    std::stringstream ss;
+    bool is_first = true;
+    for (std::size_t unit_id = 0; unit_id < unit_count; ++unit_id) {
+        if (!this->cpu->get_is_running(unit_id)) {
+            continue;
+        }
+
+        if (is_first) {
+            is_first = false;
+        } else {
+            ss << " ";
+        }
+
+        ss << unit_id;
+    }
+
+    auto ss_str = ss.str();
+    auto ss_span =
+        std::span<std::byte>((std::byte*)ss_str.data(), ss_str.size());
+
+    info("Updated {} data: `{}`", path, ss_str);
+    fs->set_file_read_data(path, ss_span);
 }
 
 std::string_view CtrlFile::get_file_name() const {

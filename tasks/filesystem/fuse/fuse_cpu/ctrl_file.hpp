@@ -13,6 +13,8 @@ class CtrlFile : public FuseFile {
 
     void after_close(FuseFs* fs, std::string_view path) override;
 
+    void recalc_read_data(FuseFs* fs, std::string_view path);
+
     std::string_view get_file_name() const;
 
   private:

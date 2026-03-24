@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <span>
+#include <string_view>
 #include <vector>
 
 class FuseFs;
@@ -16,10 +17,14 @@ class FuseFile {
 
     void truncate(std::size_t size);
 
-    virtual void after_close() = 0;
+    virtual void after_close(FuseFs* fs, std::string_view path) = 0;
 
   protected:
-    void set_read_data(std::span<const std::byte> data);
+    void set_read_data(
+        std::span<const std::byte> data, FuseFs* fs, std::string_view pat
+    );
+
+    void set_read_data_no_invalidate(std::span<const std::byte> data);
 
     std::span<const std::byte> get_read_data() const;
 

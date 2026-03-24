@@ -8,7 +8,8 @@
 #include <mutex>
 #include <vector>
 
-Unit::Unit(std::size_t unit_id) : id(unit_id), program(Program::dummy()) {
+Unit::Unit(std::size_t unit_id)
+    : id(unit_id), program(Program::dummy()), is_running(false) {
     info("Created unit {}", unit_id);
 }
 

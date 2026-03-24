@@ -11,7 +11,7 @@ class UnitProgramFile : public FuseFile {
 
     virtual ~UnitProgramFile();
 
-    void after_close() override;
+    void after_close(FuseFs* fs, std::string_view path) override;
 
     std::string get_file_name() const;
 

@@ -4,6 +4,7 @@
 #include "fuse_file.hpp"
 
 #include <string>
+#include <string_view>
 
 class UnitDataFile : public FuseFile {
   public:
@@ -11,7 +12,7 @@ class UnitDataFile : public FuseFile {
 
     virtual ~UnitDataFile();
 
-    void after_close() override;
+    void after_close(FuseFs* fs, std::string_view path) override;
 
     std::string get_file_name() const;
 

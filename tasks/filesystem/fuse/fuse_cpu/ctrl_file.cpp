@@ -11,7 +11,7 @@ CtrlFile::CtrlFile(Cpu* cpu) : cpu(cpu) {
 CtrlFile::~CtrlFile() {
 }
 
-void CtrlFile::after_close() {
+void CtrlFile::after_close(FuseFs* fs, std::string_view path) {
     warn("TODO");
 }
 

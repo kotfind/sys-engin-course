@@ -140,7 +140,8 @@ int FuseFs::fuse_flush(const char* path, struct fuse_file_info* file_info) {
         return 0;
     }
 
-    file->after_close();
+    file->after_close(fs, path);
+    fs->invalidate_path(path);
 
     return 0;
 }

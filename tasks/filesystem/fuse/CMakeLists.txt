@@ -17,6 +17,7 @@ add_executable(fuse_cpu
 
     args.cpp
     main.cpp
+    run.cpp
     signal_handler.cpp
 )
 

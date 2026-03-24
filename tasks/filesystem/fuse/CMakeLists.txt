@@ -58,3 +58,15 @@ doxygen_add_docs(fuse_cpu_docs
     ${CMAKE_CURRENT_SOURCE_DIR}
     ALL
 )
+
+# -------------------- Install --------------------
+
+install(TARGETS fuse_cpu
+    RUNTIME DESTINATION bin
+    COMPONENT app
+)
+
+install(DIRECTORY "${CMAKE_BINARY_DIR}/docs/fuse_cpu/html/"
+    DESTINATION share/doc/fuse_cpu
+    COMPONENT docs
+)
